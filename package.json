@@ -3,7 +3,7 @@
   "version": "1.0.2",
   "repository": {
     "type": "git",
-    "url": "git@github.com:madebymany/sir-trevor-js.git"
+    "url": "git@github.com:glints-dev/sir-trevor-js.git"
   },
   "scripts": {
     "test": "grunt test",
