@@ -1,10 +1,12 @@
 # Sir Trevor
 
+Rich content editing entirely re-imagined for the web
 
 ![Sir Trevor in action](https://raw.github.com/madebymany/sir-trevor-js/master/examples/sir-trevor.gif)
 
 Main project conceived by [Andrew Sprinz](http://github.com/andrewsprinz). Maintained by [Chris Bell](http://github.com/cjbell88) & [Andrew Walker](http://github.com/ninjabiscuit).
-This fork is maintained by [Glints](http://github.com/glints-dev) to work mainly with Markdown and suit our usecase more specifically.
+
+This fork is maintained by [Glints](http://github.com/glints-dev) to work primarily with markdown, amongst other customizations, to suit our use case more specifically.
 
 ## Quick start
 
