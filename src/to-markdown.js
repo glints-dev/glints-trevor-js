@@ -60,7 +60,7 @@ module.exports = function(content, type) {
   }
 
   markdown = markdown.replace(/<(\w+)(?:\s+\w+="[^"]+(?:"\$[^"]+"[^"]+)?")*>\s*<\/\1>/gim, '') //Empty elements
-                      .replace(/\n/mg,"")
+                      .replace(/\n/mg," ")
                       .replace(/<a.*?href=[""'](.*?)[""'].*?>(.*?)<\/a>/gim, function(match, p1, p2){
                         return "[" + p2.trim().replace(/<(.)?br(.)?>/g, '') + "]("+ p1 +")";
                       }) // Hyperlinks
@@ -102,7 +102,7 @@ module.exports = function(content, type) {
   }
 
   // Strip remaining HTML
-  markdown = markdown.replace(/<\/?[^>]+(>|$)/g, "");
+  markdown = markdown.replace(/<\/?[^>]+(>|$)|[^}]+;}/g, "");
 
   return markdown;
 };

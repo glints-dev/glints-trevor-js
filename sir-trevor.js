@@ -3850,7 +3850,7 @@ module.exports = Block.extend({
 
   toHTML: function(html) {
     html = html.replace(/^ - (.+)$/mg,"<li>$1</li>")
-               .replace(/\n/mg, "");
+               .replace(/\n/mg, " ");
 
     return html;
   },
@@ -5858,7 +5858,7 @@ module.exports = function(content, type) {
 
   // First of all, strip any additional formatting
   // MSWord, I'm looking at you, punk.
-  markdown = markdown.replace(/( class=(")?Mso[a-zA-Z]+(")?)/g, '')
+  markdown = markdown.replace(/( class=(")?Msoo[a-zA-Z]+(")?)/g, '')
                      .replace(/<!--(.*?)-->/g, '')
                      .replace(/\/\*(.*?)\*\//g, '')
                      .replace(/<(\/)*(meta|link|span|\\?xml:|st1:|o:|font)(.*?)>/gi, '');
@@ -5899,7 +5899,7 @@ module.exports = function(content, type) {
   }
 
   markdown = markdown.replace(/<(\w+)(?:\s+\w+="[^"]+(?:"\$[^"]+"[^"]+)?")*>\s*<\/\1>/gim, '') //Empty elements
-                      .replace(/\n/mg,"")
+                      .replace(/\n/mg," ")
                       .replace(/<a.*?href=[""'](.*?)[""'].*?>(.*?)<\/a>/gim, function(match, p1, p2){
                         return "[" + p2.trim().replace(/<(.)?br(.)?>/g, '') + "]("+ p1 +")";
                       }) // Hyperlinks
@@ -5941,7 +5941,7 @@ module.exports = function(content, type) {
   }
 
   // Strip remaining HTML
-  markdown = markdown.replace(/<\/?[^>]+(>|$)/g, "");
+  markdown = markdown.replace(/<\/?[^>]+(>|$)|[^}]+;}/g, "");
 
   return markdown;
 };
