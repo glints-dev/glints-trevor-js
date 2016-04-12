@@ -1,17 +1,17 @@
 /*!
- * Sir Trevor JS v0.4.3
+ * Sir Trevor JS v1.0.3
  *
  * Released under the MIT license
  * www.opensource.org/licenses/MIT
  *
- * 2015-01-08
+ * 2016-04-12
  */
 
 
-!function(e){if("object"==typeof exports&&"undefined"!=typeof module)module.exports=e();else if("function"==typeof define&&define.amd)define([],e);else{var f;"undefined"!=typeof window?f=window:"undefined"!=typeof global?f=global:"undefined"!=typeof self&&(f=self),f.SirTrevor=e()}}(function(){var define,module,exports;return (function e(t,n,r){function s(o,u){if(!n[o]){if(!t[o]){var a=typeof require=="function"&&require;if(!u&&a)return a(o,!0);if(i)return i(o,!0);var f=new Error("Cannot find module '"+o+"'");throw f.code="MODULE_NOT_FOUND",f}var l=n[o]={exports:{}};t[o][0].call(l.exports,function(e){var n=t[o][1][e];return s(n?n:e)},l,l.exports,e,t,n,r)}return n[o].exports}var i=typeof require=="function"&&require;for(var o=0;o<r.length;o++)s(r[o]);return s})({1:[function(require,module,exports){
+(function(f){if(typeof exports==="object"&&typeof module!=="undefined"){module.exports=f()}else if(typeof define==="function"&&define.amd){define([],f)}else{var g;if(typeof window!=="undefined"){g=window}else if(typeof global!=="undefined"){g=global}else if(typeof self!=="undefined"){g=self}else{g=this}g.SirTrevor = f()}})(function(){var define,module,exports;return (function e(t,n,r){function s(o,u){if(!n[o]){if(!t[o]){var a=typeof require=="function"&&require;if(!u&&a)return a(o,!0);if(i)return i(o,!0);var f=new Error("Cannot find module '"+o+"'");throw f.code="MODULE_NOT_FOUND",f}var l=n[o]={exports:{}};t[o][0].call(l.exports,function(e){var n=t[o][1][e];return s(n?n:e)},l,l.exports,e,t,n,r)}return n[o].exports}var i=typeof require=="function"&&require;for(var o=0;o<r.length;o++)s(r[o]);return s})({1:[function(require,module,exports){
 module.exports = require('./src/');
 
-},{"./src/":95}],2:[function(require,module,exports){
+},{"./src/":81}],2:[function(require,module,exports){
 // Array.prototype.find - MIT License (c) 2013 Paul Miller <http://paulmillr.com>
 // For all details and docs: https://github.com/paulmillr/array.prototype.find
 // Fixes and tests supplied by Duncan Hall <http://duncanhall.net> 
@@ -264,63 +264,63 @@ module.exports = require('./src/');
  * Copyright 2009-2013 Jeremy Ashkenas, DocumentCloud and Investigative Reporters & Editors
  * Available under MIT license <http://lodash.com/license>
  */
-var forOwn = require('lodash.forown'),
-    isFunction = require('lodash.isfunction');
-
-/** `Object#toString` result shortcuts */
-var argsClass = '[object Arguments]',
-    arrayClass = '[object Array]',
-    objectClass = '[object Object]',
-    stringClass = '[object String]';
-
-/** Used for native method references */
-var objectProto = Object.prototype;
-
-/** Used to resolve the internal [[Class]] of values */
-var toString = objectProto.toString;
+var baseCreate = require('lodash._basecreate'),
+    isObject = require('lodash.isobject'),
+    setBindData = require('lodash._setbinddata'),
+    slice = require('lodash._slice');
 
 /**
- * Checks if `value` is empty. Arrays, strings, or `arguments` objects with a
- * length of `0` and objects with no own enumerable properties are considered
- * "empty".
+ * Used for `Array` method references.
  *
- * @static
- * @memberOf _
- * @category Objects
- * @param {Array|Object|string} value The value to inspect.
- * @returns {boolean} Returns `true` if the `value` is empty, else `false`.
- * @example
- *
- * _.isEmpty([1, 2, 3]);
- * // => false
- *
- * _.isEmpty({});
- * // => true
- *
- * _.isEmpty('');
- * // => true
+ * Normally `Array.prototype` would suffice, however, using an array literal
+ * avoids issues in Narwhal.
  */
-function isEmpty(value) {
-  var result = true;
-  if (!value) {
-    return result;
-  }
-  var className = toString.call(value),
-      length = value.length;
+var arrayRef = [];
 
-  if ((className == arrayClass || className == stringClass || className == argsClass ) ||
-      (className == objectClass && typeof length == 'number' && isFunction(value.splice))) {
-    return !length;
+/** Native method shortcuts */
+var push = arrayRef.push;
+
+/**
+ * The base implementation of `_.bind` that creates the bound function and
+ * sets its meta data.
+ *
+ * @private
+ * @param {Array} bindData The bind data array.
+ * @returns {Function} Returns the new bound function.
+ */
+function baseBind(bindData) {
+  var func = bindData[0],
+      partialArgs = bindData[2],
+      thisArg = bindData[4];
+
+  function bound() {
+    // `Function#bind` spec
+    // http://es5.github.io/#x15.3.4.5
+    if (partialArgs) {
+      // avoid `arguments` object deoptimizations by using `slice` instead
+      // of `Array.prototype.slice.call` and not assigning `arguments` to a
+      // variable as a ternary expression
+      var args = slice(partialArgs);
+      push.apply(args, arguments);
+    }
+    // mimic the constructor's `return` behavior
+    // http://es5.github.io/#x13.2.2
+    if (this instanceof bound) {
+      // ensure `new bound` is an instance of `func`
+      var thisBinding = baseCreate(func.prototype),
+          result = func.apply(thisBinding, args || arguments);
+      return isObject(result) ? result : thisBinding;
+    }
+    return func.apply(thisArg, args || arguments);
   }
-  forOwn(value, function() {
-    return (result = false);
-  });
-  return result;
+  setBindData(bound, bindData);
+  return bound;
 }
 
-module.exports = isEmpty;
+module.exports = baseBind;
 
-},{"lodash.forown":5,"lodash.isfunction":28}],5:[function(require,module,exports){
+},{"lodash._basecreate":5,"lodash._setbinddata":16,"lodash._slice":18,"lodash.isobject":26}],5:[function(require,module,exports){
+(function (global){
 /**
  * Lo-Dash 2.4.1 (Custom Build) <http://lodash.com/>
  * Build: `lodash modularize modern exports="npm" -o ./npm/`
@@ -329,50 +329,43 @@ module.exports = isEmpty;
  * Copyright 2009-2013 Jeremy Ashkenas, DocumentCloud and Investigative Reporters & Editors
  * Available under MIT license <http://lodash.com/license>
  */
-var baseCreateCallback = require('lodash._basecreatecallback'),
-    keys = require('lodash.keys'),
-    objectTypes = require('lodash._objecttypes');
+var isNative = require('lodash._isnative'),
+    isObject = require('lodash.isobject'),
+    noop = require('lodash.noop');
+
+/* Native method shortcuts for methods with the same name as other `lodash` methods */
+var nativeCreate = isNative(nativeCreate = Object.create) && nativeCreate;
 
 /**
- * Iterates over own enumerable properties of an object, executing the callback
- * for each property. The callback is bound to `thisArg` and invoked with three
- * arguments; (value, key, object). Callbacks may exit iteration early by
- * explicitly returning `false`.
+ * The base implementation of `_.create` without support for assigning
+ * properties to the created object.
  *
- * @static
- * @memberOf _
- * @type Function
- * @category Objects
- * @param {Object} object The object to iterate over.
- * @param {Function} [callback=identity] The function called per iteration.
- * @param {*} [thisArg] The `this` binding of `callback`.
- * @returns {Object} Returns `object`.
- * @example
- *
- * _.forOwn({ '0': 'zero', '1': 'one', 'length': 2 }, function(num, key) {
- *   console.log(key);
- * });
- * // => logs '0', '1', and 'length' (property order is not guaranteed across environments)
+ * @private
+ * @param {Object} prototype The object to inherit from.
+ * @returns {Object} Returns the new object.
  */
-var forOwn = function(collection, callback, thisArg) {
-  var index, iterable = collection, result = iterable;
-  if (!iterable) return result;
-  if (!objectTypes[typeof iterable]) return result;
-  callback = callback && typeof thisArg == 'undefined' ? callback : baseCreateCallback(callback, thisArg, 3);
-    var ownIndex = -1,
-        ownProps = objectTypes[typeof iterable] && keys(iterable),
-        length = ownProps ? ownProps.length : 0;
+function baseCreate(prototype, properties) {
+  return isObject(prototype) ? nativeCreate(prototype) : {};
+}
+// fallback for browsers without `Object.create`
+if (!nativeCreate) {
+  baseCreate = (function() {
+    function Object() {}
+    return function(prototype) {
+      if (isObject(prototype)) {
+        Object.prototype = prototype;
+        var result = new Object;
+        Object.prototype = null;
+      }
+      return result || global.Object();
+    };
+  }());
+}
 
-    while (++ownIndex < length) {
-      index = ownProps[ownIndex];
-      if (callback(iterable[index], index, collection) === false) return result;
-    }
-  return result
-};
+module.exports = baseCreate;
 
-module.exports = forOwn;
-
-},{"lodash._basecreatecallback":6,"lodash._objecttypes":24,"lodash.keys":25}],6:[function(require,module,exports){
+}).call(this,typeof global !== "undefined" ? global : typeof self !== "undefined" ? self : typeof window !== "undefined" ? window : {})
+},{"lodash._isnative":12,"lodash.isobject":26,"lodash.noop":30}],6:[function(require,module,exports){
 /**
  * Lo-Dash 2.4.1 (Custom Build) <http://lodash.com/>
  * Build: `lodash modularize modern exports="npm" -o ./npm/`
@@ -454,7 +447,7 @@ function baseCreateCallback(func, thisArg, argCount) {
 
 module.exports = baseCreateCallback;
 
-},{"lodash._setbinddata":7,"lodash.bind":10,"lodash.identity":21,"lodash.support":22}],7:[function(require,module,exports){
+},{"lodash._setbinddata":16,"lodash.bind":19,"lodash.identity":23,"lodash.support":32}],7:[function(require,module,exports){
 /**
  * Lo-Dash 2.4.1 (Custom Build) <http://lodash.com/>
  * Build: `lodash modularize modern exports="npm" -o ./npm/`
@@ -463,149 +456,78 @@ module.exports = baseCreateCallback;
  * Copyright 2009-2013 Jeremy Ashkenas, DocumentCloud and Investigative Reporters & Editors
  * Available under MIT license <http://lodash.com/license>
  */
-var isNative = require('lodash._isnative'),
-    noop = require('lodash.noop');
-
-/** Used as the property descriptor for `__bindData__` */
-var descriptor = {
-  'configurable': false,
-  'enumerable': false,
-  'value': null,
-  'writable': false
-};
-
-/** Used to set meta data on functions */
-var defineProperty = (function() {
-  // IE 8 only accepts DOM elements
-  try {
-    var o = {},
-        func = isNative(func = Object.defineProperty) && func,
-        result = func(o, o, o) && func;
-  } catch(e) { }
-  return result;
-}());
-
-/**
- * Sets `this` binding data on a given function.
- *
- * @private
- * @param {Function} func The function to set data on.
- * @param {Array} value The data array to set.
- */
-var setBindData = !defineProperty ? noop : function(func, value) {
-  descriptor.value = value;
-  defineProperty(func, '__bindData__', descriptor);
-};
-
-module.exports = setBindData;
-
-},{"lodash._isnative":8,"lodash.noop":9}],8:[function(require,module,exports){
-/**
- * Lo-Dash 2.4.1 (Custom Build) <http://lodash.com/>
- * Build: `lodash modularize modern exports="npm" -o ./npm/`
- * Copyright 2012-2013 The Dojo Foundation <http://dojofoundation.org/>
- * Based on Underscore.js 1.5.2 <http://underscorejs.org/LICENSE>
- * Copyright 2009-2013 Jeremy Ashkenas, DocumentCloud and Investigative Reporters & Editors
- * Available under MIT license <http://lodash.com/license>
- */
-
-/** Used for native method references */
-var objectProto = Object.prototype;
-
-/** Used to resolve the internal [[Class]] of values */
-var toString = objectProto.toString;
-
-/** Used to detect if a method is native */
-var reNative = RegExp('^' +
-  String(toString)
-    .replace(/[.*+?^${}()|[\]\\]/g, '\\$&')
-    .replace(/toString| for [^\]]+/g, '.*?') + '$'
-);
-
-/**
- * Checks if `value` is a native function.
- *
- * @private
- * @param {*} value The value to check.
- * @returns {boolean} Returns `true` if the `value` is a native function, else `false`.
- */
-function isNative(value) {
-  return typeof value == 'function' && reNative.test(value);
-}
-
-module.exports = isNative;
-
-},{}],9:[function(require,module,exports){
-/**
- * Lo-Dash 2.4.1 (Custom Build) <http://lodash.com/>
- * Build: `lodash modularize modern exports="npm" -o ./npm/`
- * Copyright 2012-2013 The Dojo Foundation <http://dojofoundation.org/>
- * Based on Underscore.js 1.5.2 <http://underscorejs.org/LICENSE>
- * Copyright 2009-2013 Jeremy Ashkenas, DocumentCloud and Investigative Reporters & Editors
- * Available under MIT license <http://lodash.com/license>
- */
-
-/**
- * A no-operation function.
- *
- * @static
- * @memberOf _
- * @category Utilities
- * @example
- *
- * var object = { 'name': 'fred' };
- * _.noop(object) === undefined;
- * // => true
- */
-function noop() {
-  // no operation performed
-}
-
-module.exports = noop;
-
-},{}],10:[function(require,module,exports){
-/**
- * Lo-Dash 2.4.1 (Custom Build) <http://lodash.com/>
- * Build: `lodash modularize modern exports="npm" -o ./npm/`
- * Copyright 2012-2013 The Dojo Foundation <http://dojofoundation.org/>
- * Based on Underscore.js 1.5.2 <http://underscorejs.org/LICENSE>
- * Copyright 2009-2013 Jeremy Ashkenas, DocumentCloud and Investigative Reporters & Editors
- * Available under MIT license <http://lodash.com/license>
- */
-var createWrapper = require('lodash._createwrapper'),
+var baseCreate = require('lodash._basecreate'),
+    isObject = require('lodash.isobject'),
+    setBindData = require('lodash._setbinddata'),
     slice = require('lodash._slice');
 
 /**
- * Creates a function that, when called, invokes `func` with the `this`
- * binding of `thisArg` and prepends any additional `bind` arguments to those
- * provided to the bound function.
+ * Used for `Array` method references.
  *
- * @static
- * @memberOf _
- * @category Functions
- * @param {Function} func The function to bind.
- * @param {*} [thisArg] The `this` binding of `func`.
- * @param {...*} [arg] Arguments to be partially applied.
- * @returns {Function} Returns the new bound function.
- * @example
- *
- * var func = function(greeting) {
- *   return greeting + ' ' + this.name;
- * };
- *
- * func = _.bind(func, { 'name': 'fred' }, 'hi');
- * func();
- * // => 'hi fred'
+ * Normally `Array.prototype` would suffice, however, using an array literal
+ * avoids issues in Narwhal.
  */
-function bind(func, thisArg) {
-  return arguments.length > 2
-    ? createWrapper(func, 17, slice(arguments, 2), null, thisArg)
-    : createWrapper(func, 1, null, null, thisArg);
+var arrayRef = [];
+
+/** Native method shortcuts */
+var push = arrayRef.push;
+
+/**
+ * The base implementation of `createWrapper` that creates the wrapper and
+ * sets its meta data.
+ *
+ * @private
+ * @param {Array} bindData The bind data array.
+ * @returns {Function} Returns the new function.
+ */
+function baseCreateWrapper(bindData) {
+  var func = bindData[0],
+      bitmask = bindData[1],
+      partialArgs = bindData[2],
+      partialRightArgs = bindData[3],
+      thisArg = bindData[4],
+      arity = bindData[5];
+
+  var isBind = bitmask & 1,
+      isBindKey = bitmask & 2,
+      isCurry = bitmask & 4,
+      isCurryBound = bitmask & 8,
+      key = func;
+
+  function bound() {
+    var thisBinding = isBind ? thisArg : this;
+    if (partialArgs) {
+      var args = slice(partialArgs);
+      push.apply(args, arguments);
+    }
+    if (partialRightArgs || isCurry) {
+      args || (args = slice(arguments));
+      if (partialRightArgs) {
+        push.apply(args, partialRightArgs);
+      }
+      if (isCurry && args.length < arity) {
+        bitmask |= 16 & ~32;
+        return baseCreateWrapper([func, (isCurryBound ? bitmask : bitmask & ~3), args, null, thisArg, arity]);
+      }
+    }
+    args || (args = arguments);
+    if (isBindKey) {
+      func = thisBinding[key];
+    }
+    if (this instanceof bound) {
+      thisBinding = baseCreate(func.prototype);
+      var result = func.apply(thisBinding, args);
+      return isObject(result) ? result : thisBinding;
+    }
+    return func.apply(thisBinding, args);
+  }
+  setBindData(bound, bindData);
+  return bound;
 }
 
-module.exports = bind;
+module.exports = baseCreateWrapper;
 
-},{"lodash._createwrapper":11,"lodash._slice":20}],11:[function(require,module,exports){
+},{"lodash._basecreate":5,"lodash._setbinddata":16,"lodash._slice":18,"lodash.isobject":26}],8:[function(require,module,exports){
 /**
  * Lo-Dash 2.4.1 (Custom Build) <http://lodash.com/>
  * Build: `lodash modularize modern exports="npm" -o ./npm/`
@@ -713,7 +635,7 @@ function createWrapper(func, bitmask, partialArgs, partialRightArgs, thisArg, ar
 
 module.exports = createWrapper;
 
-},{"lodash._basebind":12,"lodash._basecreatewrapper":16,"lodash._slice":20,"lodash.isfunction":28}],12:[function(require,module,exports){
+},{"lodash._basebind":4,"lodash._basecreatewrapper":7,"lodash._slice":18,"lodash.isfunction":25}],9:[function(require,module,exports){
 /**
  * Lo-Dash 2.4.1 (Custom Build) <http://lodash.com/>
  * Build: `lodash modularize modern exports="npm" -o ./npm/`
@@ -722,63 +644,22 @@ module.exports = createWrapper;
  * Copyright 2009-2013 Jeremy Ashkenas, DocumentCloud and Investigative Reporters & Editors
  * Available under MIT license <http://lodash.com/license>
  */
-var baseCreate = require('lodash._basecreate'),
-    isObject = require('lodash.isobject'),
-    setBindData = require('lodash._setbinddata'),
-    slice = require('lodash._slice');
+var htmlEscapes = require('lodash._htmlescapes');
 
 /**
- * Used for `Array` method references.
- *
- * Normally `Array.prototype` would suffice, however, using an array literal
- * avoids issues in Narwhal.
- */
-var arrayRef = [];
-
-/** Native method shortcuts */
-var push = arrayRef.push;
-
-/**
- * The base implementation of `_.bind` that creates the bound function and
- * sets its meta data.
+ * Used by `escape` to convert characters to HTML entities.
  *
  * @private
- * @param {Array} bindData The bind data array.
- * @returns {Function} Returns the new bound function.
+ * @param {string} match The matched character to escape.
+ * @returns {string} Returns the escaped character.
  */
-function baseBind(bindData) {
-  var func = bindData[0],
-      partialArgs = bindData[2],
-      thisArg = bindData[4];
-
-  function bound() {
-    // `Function#bind` spec
-    // http://es5.github.io/#x15.3.4.5
-    if (partialArgs) {
-      // avoid `arguments` object deoptimizations by using `slice` instead
-      // of `Array.prototype.slice.call` and not assigning `arguments` to a
-      // variable as a ternary expression
-      var args = slice(partialArgs);
-      push.apply(args, arguments);
-    }
-    // mimic the constructor's `return` behavior
-    // http://es5.github.io/#x13.2.2
-    if (this instanceof bound) {
-      // ensure `new bound` is an instance of `func`
-      var thisBinding = baseCreate(func.prototype),
-          result = func.apply(thisBinding, args || arguments);
-      return isObject(result) ? result : thisBinding;
-    }
-    return func.apply(thisArg, args || arguments);
-  }
-  setBindData(bound, bindData);
-  return bound;
+function escapeHtmlChar(match) {
+  return htmlEscapes[match];
 }
 
-module.exports = baseBind;
+module.exports = escapeHtmlChar;
 
-},{"lodash._basecreate":13,"lodash._setbinddata":7,"lodash._slice":20,"lodash.isobject":29}],13:[function(require,module,exports){
-(function (global){
+},{"lodash._htmlescapes":11}],10:[function(require,module,exports){
 /**
  * Lo-Dash 2.4.1 (Custom Build) <http://lodash.com/>
  * Build: `lodash modularize modern exports="npm" -o ./npm/`
@@ -787,47 +668,33 @@ module.exports = baseBind;
  * Copyright 2009-2013 Jeremy Ashkenas, DocumentCloud and Investigative Reporters & Editors
  * Available under MIT license <http://lodash.com/license>
  */
-var isNative = require('lodash._isnative'),
-    isObject = require('lodash.isobject'),
-    noop = require('lodash.noop');
 
-/* Native method shortcuts for methods with the same name as other `lodash` methods */
-var nativeCreate = isNative(nativeCreate = Object.create) && nativeCreate;
+/** Used to escape characters for inclusion in compiled string literals */
+var stringEscapes = {
+  '\\': '\\',
+  "'": "'",
+  '\n': 'n',
+  '\r': 'r',
+  '\t': 't',
+  '\u2028': 'u2028',
+  '\u2029': 'u2029'
+};
 
 /**
- * The base implementation of `_.create` without support for assigning
- * properties to the created object.
+ * Used by `template` to escape characters for inclusion in compiled
+ * string literals.
  *
  * @private
- * @param {Object} prototype The object to inherit from.
- * @returns {Object} Returns the new object.
+ * @param {string} match The matched character to escape.
+ * @returns {string} Returns the escaped character.
  */
-function baseCreate(prototype, properties) {
-  return isObject(prototype) ? nativeCreate(prototype) : {};
-}
-// fallback for browsers without `Object.create`
-if (!nativeCreate) {
-  baseCreate = (function() {
-    function Object() {}
-    return function(prototype) {
-      if (isObject(prototype)) {
-        Object.prototype = prototype;
-        var result = new Object;
-        Object.prototype = null;
-      }
-      return result || global.Object();
-    };
-  }());
+function escapeStringChar(match) {
+  return '\\' + stringEscapes[match];
 }
 
-module.exports = baseCreate;
+module.exports = escapeStringChar;
 
-}).call(this,typeof global !== "undefined" ? global : typeof self !== "undefined" ? self : typeof window !== "undefined" ? window : {})
-},{"lodash._isnative":14,"lodash.isobject":29,"lodash.noop":15}],14:[function(require,module,exports){
-module.exports=require(8)
-},{"/Users/andrewwalker/sites/sir-trevor-js/node_modules/lodash.isempty/node_modules/lodash.forown/node_modules/lodash._basecreatecallback/node_modules/lodash._setbinddata/node_modules/lodash._isnative/index.js":8}],15:[function(require,module,exports){
-module.exports=require(9)
-},{"/Users/andrewwalker/sites/sir-trevor-js/node_modules/lodash.isempty/node_modules/lodash.forown/node_modules/lodash._basecreatecallback/node_modules/lodash._setbinddata/node_modules/lodash.noop/index.js":9}],16:[function(require,module,exports){
+},{}],11:[function(require,module,exports){
 /**
  * Lo-Dash 2.4.1 (Custom Build) <http://lodash.com/>
  * Build: `lodash modularize modern exports="npm" -o ./npm/`
@@ -836,200 +703,62 @@ module.exports=require(9)
  * Copyright 2009-2013 Jeremy Ashkenas, DocumentCloud and Investigative Reporters & Editors
  * Available under MIT license <http://lodash.com/license>
  */
-var baseCreate = require('lodash._basecreate'),
-    isObject = require('lodash.isobject'),
-    setBindData = require('lodash._setbinddata'),
-    slice = require('lodash._slice');
 
 /**
- * Used for `Array` method references.
+ * Used to convert characters to HTML entities:
  *
- * Normally `Array.prototype` would suffice, however, using an array literal
- * avoids issues in Narwhal.
+ * Though the `>` character is escaped for symmetry, characters like `>` and `/`
+ * don't require escaping in HTML and have no special meaning unless they're part
+ * of a tag or an unquoted attribute value.
+ * http://mathiasbynens.be/notes/ambiguous-ampersands (under "semi-related fun fact")
  */
-var arrayRef = [];
+var htmlEscapes = {
+  '&': '&amp;',
+  '<': '&lt;',
+  '>': '&gt;',
+  '"': '&quot;',
+  "'": '&#39;'
+};
 
-/** Native method shortcuts */
-var push = arrayRef.push;
+module.exports = htmlEscapes;
+
+},{}],12:[function(require,module,exports){
+/**
+ * Lo-Dash 2.4.1 (Custom Build) <http://lodash.com/>
+ * Build: `lodash modularize modern exports="npm" -o ./npm/`
+ * Copyright 2012-2013 The Dojo Foundation <http://dojofoundation.org/>
+ * Based on Underscore.js 1.5.2 <http://underscorejs.org/LICENSE>
+ * Copyright 2009-2013 Jeremy Ashkenas, DocumentCloud and Investigative Reporters & Editors
+ * Available under MIT license <http://lodash.com/license>
+ */
+
+/** Used for native method references */
+var objectProto = Object.prototype;
+
+/** Used to resolve the internal [[Class]] of values */
+var toString = objectProto.toString;
+
+/** Used to detect if a method is native */
+var reNative = RegExp('^' +
+  String(toString)
+    .replace(/[.*+?^${}()|[\]\\]/g, '\\$&')
+    .replace(/toString| for [^\]]+/g, '.*?') + '$'
+);
 
 /**
- * The base implementation of `createWrapper` that creates the wrapper and
- * sets its meta data.
+ * Checks if `value` is a native function.
  *
  * @private
- * @param {Array} bindData The bind data array.
- * @returns {Function} Returns the new function.
+ * @param {*} value The value to check.
+ * @returns {boolean} Returns `true` if the `value` is a native function, else `false`.
  */
-function baseCreateWrapper(bindData) {
-  var func = bindData[0],
-      bitmask = bindData[1],
-      partialArgs = bindData[2],
-      partialRightArgs = bindData[3],
-      thisArg = bindData[4],
-      arity = bindData[5];
-
-  var isBind = bitmask & 1,
-      isBindKey = bitmask & 2,
-      isCurry = bitmask & 4,
-      isCurryBound = bitmask & 8,
-      key = func;
-
-  function bound() {
-    var thisBinding = isBind ? thisArg : this;
-    if (partialArgs) {
-      var args = slice(partialArgs);
-      push.apply(args, arguments);
-    }
-    if (partialRightArgs || isCurry) {
-      args || (args = slice(arguments));
-      if (partialRightArgs) {
-        push.apply(args, partialRightArgs);
-      }
-      if (isCurry && args.length < arity) {
-        bitmask |= 16 & ~32;
-        return baseCreateWrapper([func, (isCurryBound ? bitmask : bitmask & ~3), args, null, thisArg, arity]);
-      }
-    }
-    args || (args = arguments);
-    if (isBindKey) {
-      func = thisBinding[key];
-    }
-    if (this instanceof bound) {
-      thisBinding = baseCreate(func.prototype);
-      var result = func.apply(thisBinding, args);
-      return isObject(result) ? result : thisBinding;
-    }
-    return func.apply(thisBinding, args);
-  }
-  setBindData(bound, bindData);
-  return bound;
+function isNative(value) {
+  return typeof value == 'function' && reNative.test(value);
 }
 
-module.exports = baseCreateWrapper;
+module.exports = isNative;
 
-},{"lodash._basecreate":17,"lodash._setbinddata":7,"lodash._slice":20,"lodash.isobject":29}],17:[function(require,module,exports){
-module.exports=require(13)
-},{"/Users/andrewwalker/sites/sir-trevor-js/node_modules/lodash.isempty/node_modules/lodash.forown/node_modules/lodash._basecreatecallback/node_modules/lodash.bind/node_modules/lodash._createwrapper/node_modules/lodash._basebind/node_modules/lodash._basecreate/index.js":13,"lodash._isnative":18,"lodash.isobject":29,"lodash.noop":19}],18:[function(require,module,exports){
-module.exports=require(8)
-},{"/Users/andrewwalker/sites/sir-trevor-js/node_modules/lodash.isempty/node_modules/lodash.forown/node_modules/lodash._basecreatecallback/node_modules/lodash._setbinddata/node_modules/lodash._isnative/index.js":8}],19:[function(require,module,exports){
-module.exports=require(9)
-},{"/Users/andrewwalker/sites/sir-trevor-js/node_modules/lodash.isempty/node_modules/lodash.forown/node_modules/lodash._basecreatecallback/node_modules/lodash._setbinddata/node_modules/lodash.noop/index.js":9}],20:[function(require,module,exports){
-/**
- * Lo-Dash 2.4.1 (Custom Build) <http://lodash.com/>
- * Build: `lodash modularize modern exports="npm" -o ./npm/`
- * Copyright 2012-2013 The Dojo Foundation <http://dojofoundation.org/>
- * Based on Underscore.js 1.5.2 <http://underscorejs.org/LICENSE>
- * Copyright 2009-2013 Jeremy Ashkenas, DocumentCloud and Investigative Reporters & Editors
- * Available under MIT license <http://lodash.com/license>
- */
-
-/**
- * Slices the `collection` from the `start` index up to, but not including,
- * the `end` index.
- *
- * Note: This function is used instead of `Array#slice` to support node lists
- * in IE < 9 and to ensure dense arrays are returned.
- *
- * @private
- * @param {Array|Object|string} collection The collection to slice.
- * @param {number} start The start index.
- * @param {number} end The end index.
- * @returns {Array} Returns the new array.
- */
-function slice(array, start, end) {
-  start || (start = 0);
-  if (typeof end == 'undefined') {
-    end = array ? array.length : 0;
-  }
-  var index = -1,
-      length = end - start || 0,
-      result = Array(length < 0 ? 0 : length);
-
-  while (++index < length) {
-    result[index] = array[start + index];
-  }
-  return result;
-}
-
-module.exports = slice;
-
-},{}],21:[function(require,module,exports){
-/**
- * Lo-Dash 2.4.1 (Custom Build) <http://lodash.com/>
- * Build: `lodash modularize modern exports="npm" -o ./npm/`
- * Copyright 2012-2013 The Dojo Foundation <http://dojofoundation.org/>
- * Based on Underscore.js 1.5.2 <http://underscorejs.org/LICENSE>
- * Copyright 2009-2013 Jeremy Ashkenas, DocumentCloud and Investigative Reporters & Editors
- * Available under MIT license <http://lodash.com/license>
- */
-
-/**
- * This method returns the first argument provided to it.
- *
- * @static
- * @memberOf _
- * @category Utilities
- * @param {*} value Any value.
- * @returns {*} Returns `value`.
- * @example
- *
- * var object = { 'name': 'fred' };
- * _.identity(object) === object;
- * // => true
- */
-function identity(value) {
-  return value;
-}
-
-module.exports = identity;
-
-},{}],22:[function(require,module,exports){
-(function (global){
-/**
- * Lo-Dash 2.4.1 (Custom Build) <http://lodash.com/>
- * Build: `lodash modularize modern exports="npm" -o ./npm/`
- * Copyright 2012-2013 The Dojo Foundation <http://dojofoundation.org/>
- * Based on Underscore.js 1.5.2 <http://underscorejs.org/LICENSE>
- * Copyright 2009-2013 Jeremy Ashkenas, DocumentCloud and Investigative Reporters & Editors
- * Available under MIT license <http://lodash.com/license>
- */
-var isNative = require('lodash._isnative');
-
-/** Used to detect functions containing a `this` reference */
-var reThis = /\bthis\b/;
-
-/**
- * An object used to flag environments features.
- *
- * @static
- * @memberOf _
- * @type Object
- */
-var support = {};
-
-/**
- * Detect if functions can be decompiled by `Function#toString`
- * (all but PS3 and older Opera mobile browsers & avoided in Windows 8 apps).
- *
- * @memberOf _.support
- * @type boolean
- */
-support.funcDecomp = !isNative(global.WinRTError) && reThis.test(function() { return this; });
-
-/**
- * Detect if `Function#name` is supported (all but IE).
- *
- * @memberOf _.support
- * @type boolean
- */
-support.funcNames = typeof Function.name == 'string';
-
-module.exports = support;
-
-}).call(this,typeof global !== "undefined" ? global : typeof self !== "undefined" ? self : typeof window !== "undefined" ? window : {})
-},{"lodash._isnative":23}],23:[function(require,module,exports){
-module.exports=require(8)
-},{"/Users/andrewwalker/sites/sir-trevor-js/node_modules/lodash.isempty/node_modules/lodash.forown/node_modules/lodash._basecreatecallback/node_modules/lodash._setbinddata/node_modules/lodash._isnative/index.js":8}],24:[function(require,module,exports){
+},{}],13:[function(require,module,exports){
 /**
  * Lo-Dash 2.4.1 (Custom Build) <http://lodash.com/>
  * Build: `lodash modularize modern exports="npm" -o ./npm/`
@@ -1051,7 +780,39 @@ var objectTypes = {
 
 module.exports = objectTypes;
 
-},{}],25:[function(require,module,exports){
+},{}],14:[function(require,module,exports){
+/**
+ * Lo-Dash 2.4.1 (Custom Build) <http://lodash.com/>
+ * Build: `lodash modularize modern exports="npm" -o ./npm/`
+ * Copyright 2012-2013 The Dojo Foundation <http://dojofoundation.org/>
+ * Based on Underscore.js 1.5.2 <http://underscorejs.org/LICENSE>
+ * Copyright 2009-2013 Jeremy Ashkenas, DocumentCloud and Investigative Reporters & Editors
+ * Available under MIT license <http://lodash.com/license>
+ */
+
+/** Used to match "interpolate" template delimiters */
+var reInterpolate = /<%=([\s\S]+?)%>/g;
+
+module.exports = reInterpolate;
+
+},{}],15:[function(require,module,exports){
+/**
+ * Lo-Dash 2.4.1 (Custom Build) <http://lodash.com/>
+ * Build: `lodash modularize modern exports="npm" -o ./npm/`
+ * Copyright 2012-2013 The Dojo Foundation <http://dojofoundation.org/>
+ * Based on Underscore.js 1.5.2 <http://underscorejs.org/LICENSE>
+ * Copyright 2009-2013 Jeremy Ashkenas, DocumentCloud and Investigative Reporters & Editors
+ * Available under MIT license <http://lodash.com/license>
+ */
+var htmlEscapes = require('lodash._htmlescapes'),
+    keys = require('lodash.keys');
+
+/** Used to match HTML entities and HTML characters */
+var reUnescapedHtml = RegExp('[' + keys(htmlEscapes).join('') + ']', 'g');
+
+module.exports = reUnescapedHtml;
+
+},{"lodash._htmlescapes":11,"lodash.keys":29}],16:[function(require,module,exports){
 /**
  * Lo-Dash 2.4.1 (Custom Build) <http://lodash.com/>
  * Build: `lodash modularize modern exports="npm" -o ./npm/`
@@ -1061,37 +822,42 @@ module.exports = objectTypes;
  * Available under MIT license <http://lodash.com/license>
  */
 var isNative = require('lodash._isnative'),
-    isObject = require('lodash.isobject'),
-    shimKeys = require('lodash._shimkeys');
+    noop = require('lodash.noop');
 
-/* Native method shortcuts for methods with the same name as other `lodash` methods */
-var nativeKeys = isNative(nativeKeys = Object.keys) && nativeKeys;
-
-/**
- * Creates an array composed of the own enumerable property names of an object.
- *
- * @static
- * @memberOf _
- * @category Objects
- * @param {Object} object The object to inspect.
- * @returns {Array} Returns an array of property names.
- * @example
- *
- * _.keys({ 'one': 1, 'two': 2, 'three': 3 });
- * // => ['one', 'two', 'three'] (property order is not guaranteed across environments)
- */
-var keys = !nativeKeys ? shimKeys : function(object) {
-  if (!isObject(object)) {
-    return [];
-  }
-  return nativeKeys(object);
+/** Used as the property descriptor for `__bindData__` */
+var descriptor = {
+  'configurable': false,
+  'enumerable': false,
+  'value': null,
+  'writable': false
 };
 
-module.exports = keys;
+/** Used to set meta data on functions */
+var defineProperty = (function() {
+  // IE 8 only accepts DOM elements
+  try {
+    var o = {},
+        func = isNative(func = Object.defineProperty) && func,
+        result = func(o, o, o) && func;
+  } catch(e) { }
+  return result;
+}());
 
-},{"lodash._isnative":26,"lodash._shimkeys":27,"lodash.isobject":29}],26:[function(require,module,exports){
-module.exports=require(8)
-},{"/Users/andrewwalker/sites/sir-trevor-js/node_modules/lodash.isempty/node_modules/lodash.forown/node_modules/lodash._basecreatecallback/node_modules/lodash._setbinddata/node_modules/lodash._isnative/index.js":8}],27:[function(require,module,exports){
+/**
+ * Sets `this` binding data on a given function.
+ *
+ * @private
+ * @param {Function} func The function to set data on.
+ * @param {Array} value The data array to set.
+ */
+var setBindData = !defineProperty ? noop : function(func, value) {
+  descriptor.value = value;
+  defineProperty(func, '__bindData__', descriptor);
+};
+
+module.exports = setBindData;
+
+},{"lodash._isnative":12,"lodash.noop":30}],17:[function(require,module,exports){
 /**
  * Lo-Dash 2.4.1 (Custom Build) <http://lodash.com/>
  * Build: `lodash modularize modern exports="npm" -o ./npm/`
@@ -1131,7 +897,325 @@ var shimKeys = function(object) {
 
 module.exports = shimKeys;
 
-},{"lodash._objecttypes":24}],28:[function(require,module,exports){
+},{"lodash._objecttypes":13}],18:[function(require,module,exports){
+/**
+ * Lo-Dash 2.4.1 (Custom Build) <http://lodash.com/>
+ * Build: `lodash modularize modern exports="npm" -o ./npm/`
+ * Copyright 2012-2013 The Dojo Foundation <http://dojofoundation.org/>
+ * Based on Underscore.js 1.5.2 <http://underscorejs.org/LICENSE>
+ * Copyright 2009-2013 Jeremy Ashkenas, DocumentCloud and Investigative Reporters & Editors
+ * Available under MIT license <http://lodash.com/license>
+ */
+
+/**
+ * Slices the `collection` from the `start` index up to, but not including,
+ * the `end` index.
+ *
+ * Note: This function is used instead of `Array#slice` to support node lists
+ * in IE < 9 and to ensure dense arrays are returned.
+ *
+ * @private
+ * @param {Array|Object|string} collection The collection to slice.
+ * @param {number} start The start index.
+ * @param {number} end The end index.
+ * @returns {Array} Returns the new array.
+ */
+function slice(array, start, end) {
+  start || (start = 0);
+  if (typeof end == 'undefined') {
+    end = array ? array.length : 0;
+  }
+  var index = -1,
+      length = end - start || 0,
+      result = Array(length < 0 ? 0 : length);
+
+  while (++index < length) {
+    result[index] = array[start + index];
+  }
+  return result;
+}
+
+module.exports = slice;
+
+},{}],19:[function(require,module,exports){
+/**
+ * Lo-Dash 2.4.1 (Custom Build) <http://lodash.com/>
+ * Build: `lodash modularize modern exports="npm" -o ./npm/`
+ * Copyright 2012-2013 The Dojo Foundation <http://dojofoundation.org/>
+ * Based on Underscore.js 1.5.2 <http://underscorejs.org/LICENSE>
+ * Copyright 2009-2013 Jeremy Ashkenas, DocumentCloud and Investigative Reporters & Editors
+ * Available under MIT license <http://lodash.com/license>
+ */
+var createWrapper = require('lodash._createwrapper'),
+    slice = require('lodash._slice');
+
+/**
+ * Creates a function that, when called, invokes `func` with the `this`
+ * binding of `thisArg` and prepends any additional `bind` arguments to those
+ * provided to the bound function.
+ *
+ * @static
+ * @memberOf _
+ * @category Functions
+ * @param {Function} func The function to bind.
+ * @param {*} [thisArg] The `this` binding of `func`.
+ * @param {...*} [arg] Arguments to be partially applied.
+ * @returns {Function} Returns the new bound function.
+ * @example
+ *
+ * var func = function(greeting) {
+ *   return greeting + ' ' + this.name;
+ * };
+ *
+ * func = _.bind(func, { 'name': 'fred' }, 'hi');
+ * func();
+ * // => 'hi fred'
+ */
+function bind(func, thisArg) {
+  return arguments.length > 2
+    ? createWrapper(func, 17, slice(arguments, 2), null, thisArg)
+    : createWrapper(func, 1, null, null, thisArg);
+}
+
+module.exports = bind;
+
+},{"lodash._createwrapper":8,"lodash._slice":18}],20:[function(require,module,exports){
+/**
+ * Lo-Dash 2.4.1 (Custom Build) <http://lodash.com/>
+ * Build: `lodash modularize modern exports="npm" -o ./npm/`
+ * Copyright 2012-2013 The Dojo Foundation <http://dojofoundation.org/>
+ * Based on Underscore.js 1.5.2 <http://underscorejs.org/LICENSE>
+ * Copyright 2009-2013 Jeremy Ashkenas, DocumentCloud and Investigative Reporters & Editors
+ * Available under MIT license <http://lodash.com/license>
+ */
+var keys = require('lodash.keys'),
+    objectTypes = require('lodash._objecttypes');
+
+/**
+ * Assigns own enumerable properties of source object(s) to the destination
+ * object for all destination properties that resolve to `undefined`. Once a
+ * property is set, additional defaults of the same property will be ignored.
+ *
+ * @static
+ * @memberOf _
+ * @type Function
+ * @category Objects
+ * @param {Object} object The destination object.
+ * @param {...Object} [source] The source objects.
+ * @param- {Object} [guard] Allows working with `_.reduce` without using its
+ *  `key` and `object` arguments as sources.
+ * @returns {Object} Returns the destination object.
+ * @example
+ *
+ * var object = { 'name': 'barney' };
+ * _.defaults(object, { 'name': 'fred', 'employer': 'slate' });
+ * // => { 'name': 'barney', 'employer': 'slate' }
+ */
+var defaults = function(object, source, guard) {
+  var index, iterable = object, result = iterable;
+  if (!iterable) return result;
+  var args = arguments,
+      argsIndex = 0,
+      argsLength = typeof guard == 'number' ? 2 : args.length;
+  while (++argsIndex < argsLength) {
+    iterable = args[argsIndex];
+    if (iterable && objectTypes[typeof iterable]) {
+    var ownIndex = -1,
+        ownProps = objectTypes[typeof iterable] && keys(iterable),
+        length = ownProps ? ownProps.length : 0;
+
+    while (++ownIndex < length) {
+      index = ownProps[ownIndex];
+      if (typeof result[index] == 'undefined') result[index] = iterable[index];
+    }
+    }
+  }
+  return result
+};
+
+module.exports = defaults;
+
+},{"lodash._objecttypes":13,"lodash.keys":29}],21:[function(require,module,exports){
+/**
+ * Lo-Dash 2.4.1 (Custom Build) <http://lodash.com/>
+ * Build: `lodash modularize modern exports="npm" -o ./npm/`
+ * Copyright 2012-2013 The Dojo Foundation <http://dojofoundation.org/>
+ * Based on Underscore.js 1.5.2 <http://underscorejs.org/LICENSE>
+ * Copyright 2009-2013 Jeremy Ashkenas, DocumentCloud and Investigative Reporters & Editors
+ * Available under MIT license <http://lodash.com/license>
+ */
+var escapeHtmlChar = require('lodash._escapehtmlchar'),
+    keys = require('lodash.keys'),
+    reUnescapedHtml = require('lodash._reunescapedhtml');
+
+/**
+ * Converts the characters `&`, `<`, `>`, `"`, and `'` in `string` to their
+ * corresponding HTML entities.
+ *
+ * @static
+ * @memberOf _
+ * @category Utilities
+ * @param {string} string The string to escape.
+ * @returns {string} Returns the escaped string.
+ * @example
+ *
+ * _.escape('Fred, Wilma, & Pebbles');
+ * // => 'Fred, Wilma, &amp; Pebbles'
+ */
+function escape(string) {
+  return string == null ? '' : String(string).replace(reUnescapedHtml, escapeHtmlChar);
+}
+
+module.exports = escape;
+
+},{"lodash._escapehtmlchar":9,"lodash._reunescapedhtml":15,"lodash.keys":29}],22:[function(require,module,exports){
+/**
+ * Lo-Dash 2.4.1 (Custom Build) <http://lodash.com/>
+ * Build: `lodash modularize modern exports="npm" -o ./npm/`
+ * Copyright 2012-2013 The Dojo Foundation <http://dojofoundation.org/>
+ * Based on Underscore.js 1.5.2 <http://underscorejs.org/LICENSE>
+ * Copyright 2009-2013 Jeremy Ashkenas, DocumentCloud and Investigative Reporters & Editors
+ * Available under MIT license <http://lodash.com/license>
+ */
+var baseCreateCallback = require('lodash._basecreatecallback'),
+    keys = require('lodash.keys'),
+    objectTypes = require('lodash._objecttypes');
+
+/**
+ * Iterates over own enumerable properties of an object, executing the callback
+ * for each property. The callback is bound to `thisArg` and invoked with three
+ * arguments; (value, key, object). Callbacks may exit iteration early by
+ * explicitly returning `false`.
+ *
+ * @static
+ * @memberOf _
+ * @type Function
+ * @category Objects
+ * @param {Object} object The object to iterate over.
+ * @param {Function} [callback=identity] The function called per iteration.
+ * @param {*} [thisArg] The `this` binding of `callback`.
+ * @returns {Object} Returns `object`.
+ * @example
+ *
+ * _.forOwn({ '0': 'zero', '1': 'one', 'length': 2 }, function(num, key) {
+ *   console.log(key);
+ * });
+ * // => logs '0', '1', and 'length' (property order is not guaranteed across environments)
+ */
+var forOwn = function(collection, callback, thisArg) {
+  var index, iterable = collection, result = iterable;
+  if (!iterable) return result;
+  if (!objectTypes[typeof iterable]) return result;
+  callback = callback && typeof thisArg == 'undefined' ? callback : baseCreateCallback(callback, thisArg, 3);
+    var ownIndex = -1,
+        ownProps = objectTypes[typeof iterable] && keys(iterable),
+        length = ownProps ? ownProps.length : 0;
+
+    while (++ownIndex < length) {
+      index = ownProps[ownIndex];
+      if (callback(iterable[index], index, collection) === false) return result;
+    }
+  return result
+};
+
+module.exports = forOwn;
+
+},{"lodash._basecreatecallback":6,"lodash._objecttypes":13,"lodash.keys":29}],23:[function(require,module,exports){
+/**
+ * Lo-Dash 2.4.1 (Custom Build) <http://lodash.com/>
+ * Build: `lodash modularize modern exports="npm" -o ./npm/`
+ * Copyright 2012-2013 The Dojo Foundation <http://dojofoundation.org/>
+ * Based on Underscore.js 1.5.2 <http://underscorejs.org/LICENSE>
+ * Copyright 2009-2013 Jeremy Ashkenas, DocumentCloud and Investigative Reporters & Editors
+ * Available under MIT license <http://lodash.com/license>
+ */
+
+/**
+ * This method returns the first argument provided to it.
+ *
+ * @static
+ * @memberOf _
+ * @category Utilities
+ * @param {*} value Any value.
+ * @returns {*} Returns `value`.
+ * @example
+ *
+ * var object = { 'name': 'fred' };
+ * _.identity(object) === object;
+ * // => true
+ */
+function identity(value) {
+  return value;
+}
+
+module.exports = identity;
+
+},{}],24:[function(require,module,exports){
+/**
+ * Lo-Dash 2.4.1 (Custom Build) <http://lodash.com/>
+ * Build: `lodash modularize modern exports="npm" -o ./npm/`
+ * Copyright 2012-2013 The Dojo Foundation <http://dojofoundation.org/>
+ * Based on Underscore.js 1.5.2 <http://underscorejs.org/LICENSE>
+ * Copyright 2009-2013 Jeremy Ashkenas, DocumentCloud and Investigative Reporters & Editors
+ * Available under MIT license <http://lodash.com/license>
+ */
+var forOwn = require('lodash.forown'),
+    isFunction = require('lodash.isfunction');
+
+/** `Object#toString` result shortcuts */
+var argsClass = '[object Arguments]',
+    arrayClass = '[object Array]',
+    objectClass = '[object Object]',
+    stringClass = '[object String]';
+
+/** Used for native method references */
+var objectProto = Object.prototype;
+
+/** Used to resolve the internal [[Class]] of values */
+var toString = objectProto.toString;
+
+/**
+ * Checks if `value` is empty. Arrays, strings, or `arguments` objects with a
+ * length of `0` and objects with no own enumerable properties are considered
+ * "empty".
+ *
+ * @static
+ * @memberOf _
+ * @category Objects
+ * @param {Array|Object|string} value The value to inspect.
+ * @returns {boolean} Returns `true` if the `value` is empty, else `false`.
+ * @example
+ *
+ * _.isEmpty([1, 2, 3]);
+ * // => false
+ *
+ * _.isEmpty({});
+ * // => true
+ *
+ * _.isEmpty('');
+ * // => true
+ */
+function isEmpty(value) {
+  var result = true;
+  if (!value) {
+    return result;
+  }
+  var className = toString.call(value),
+      length = value.length;
+
+  if ((className == arrayClass || className == stringClass || className == argsClass ) ||
+      (className == objectClass && typeof length == 'number' && isFunction(value.splice))) {
+    return !length;
+  }
+  forOwn(value, function() {
+    return (result = false);
+  });
+  return result;
+}
+
+module.exports = isEmpty;
+
+},{"lodash.forown":22,"lodash.isfunction":25}],25:[function(require,module,exports){
 /**
  * Lo-Dash 2.4.1 (Custom Build) <http://lodash.com/>
  * Build: `lodash modularize modern exports="npm" -o ./npm/`
@@ -1160,7 +1244,7 @@ function isFunction(value) {
 
 module.exports = isFunction;
 
-},{}],29:[function(require,module,exports){
+},{}],26:[function(require,module,exports){
 /**
  * Lo-Dash 2.4.1 (Custom Build) <http://lodash.com/>
  * Build: `lodash modularize modern exports="npm" -o ./npm/`
@@ -1201,9 +1285,7 @@ function isObject(value) {
 
 module.exports = isObject;
 
-},{"lodash._objecttypes":30}],30:[function(require,module,exports){
-module.exports=require(24)
-},{"/Users/andrewwalker/sites/sir-trevor-js/node_modules/lodash.isempty/node_modules/lodash.forown/node_modules/lodash._objecttypes/index.js":24}],31:[function(require,module,exports){
+},{"lodash._objecttypes":13}],27:[function(require,module,exports){
 /**
  * Lo-Dash 2.4.1 (Custom Build) <http://lodash.com/>
  * Build: `lodash modularize modern exports="npm" -o ./npm/`
@@ -1242,7 +1324,7 @@ function isString(value) {
 
 module.exports = isString;
 
-},{}],32:[function(require,module,exports){
+},{}],28:[function(require,module,exports){
 /**
  * Lo-Dash 2.4.1 (Custom Build) <http://lodash.com/>
  * Build: `lodash modularize modern exports="npm" -o ./npm/`
@@ -1271,7 +1353,73 @@ function isUndefined(value) {
 
 module.exports = isUndefined;
 
-},{}],33:[function(require,module,exports){
+},{}],29:[function(require,module,exports){
+/**
+ * Lo-Dash 2.4.1 (Custom Build) <http://lodash.com/>
+ * Build: `lodash modularize modern exports="npm" -o ./npm/`
+ * Copyright 2012-2013 The Dojo Foundation <http://dojofoundation.org/>
+ * Based on Underscore.js 1.5.2 <http://underscorejs.org/LICENSE>
+ * Copyright 2009-2013 Jeremy Ashkenas, DocumentCloud and Investigative Reporters & Editors
+ * Available under MIT license <http://lodash.com/license>
+ */
+var isNative = require('lodash._isnative'),
+    isObject = require('lodash.isobject'),
+    shimKeys = require('lodash._shimkeys');
+
+/* Native method shortcuts for methods with the same name as other `lodash` methods */
+var nativeKeys = isNative(nativeKeys = Object.keys) && nativeKeys;
+
+/**
+ * Creates an array composed of the own enumerable property names of an object.
+ *
+ * @static
+ * @memberOf _
+ * @category Objects
+ * @param {Object} object The object to inspect.
+ * @returns {Array} Returns an array of property names.
+ * @example
+ *
+ * _.keys({ 'one': 1, 'two': 2, 'three': 3 });
+ * // => ['one', 'two', 'three'] (property order is not guaranteed across environments)
+ */
+var keys = !nativeKeys ? shimKeys : function(object) {
+  if (!isObject(object)) {
+    return [];
+  }
+  return nativeKeys(object);
+};
+
+module.exports = keys;
+
+},{"lodash._isnative":12,"lodash._shimkeys":17,"lodash.isobject":26}],30:[function(require,module,exports){
+/**
+ * Lo-Dash 2.4.1 (Custom Build) <http://lodash.com/>
+ * Build: `lodash modularize modern exports="npm" -o ./npm/`
+ * Copyright 2012-2013 The Dojo Foundation <http://dojofoundation.org/>
+ * Based on Underscore.js 1.5.2 <http://underscorejs.org/LICENSE>
+ * Copyright 2009-2013 Jeremy Ashkenas, DocumentCloud and Investigative Reporters & Editors
+ * Available under MIT license <http://lodash.com/license>
+ */
+
+/**
+ * A no-operation function.
+ *
+ * @static
+ * @memberOf _
+ * @category Utilities
+ * @example
+ *
+ * var object = { 'name': 'fred' };
+ * _.noop(object) === undefined;
+ * // => true
+ */
+function noop() {
+  // no operation performed
+}
+
+module.exports = noop;
+
+},{}],31:[function(require,module,exports){
 /**
  * Lo-Dash 2.4.1 (Custom Build) <http://lodash.com/>
  * Build: `lodash modularize modern exports="npm" -o ./npm/`
@@ -1318,7 +1466,51 @@ function result(object, key) {
 
 module.exports = result;
 
-},{"lodash.isfunction":28}],34:[function(require,module,exports){
+},{"lodash.isfunction":25}],32:[function(require,module,exports){
+(function (global){
+/**
+ * Lo-Dash 2.4.1 (Custom Build) <http://lodash.com/>
+ * Build: `lodash modularize modern exports="npm" -o ./npm/`
+ * Copyright 2012-2013 The Dojo Foundation <http://dojofoundation.org/>
+ * Based on Underscore.js 1.5.2 <http://underscorejs.org/LICENSE>
+ * Copyright 2009-2013 Jeremy Ashkenas, DocumentCloud and Investigative Reporters & Editors
+ * Available under MIT license <http://lodash.com/license>
+ */
+var isNative = require('lodash._isnative');
+
+/** Used to detect functions containing a `this` reference */
+var reThis = /\bthis\b/;
+
+/**
+ * An object used to flag environments features.
+ *
+ * @static
+ * @memberOf _
+ * @type Object
+ */
+var support = {};
+
+/**
+ * Detect if functions can be decompiled by `Function#toString`
+ * (all but PS3 and older Opera mobile browsers & avoided in Windows 8 apps).
+ *
+ * @memberOf _.support
+ * @type boolean
+ */
+support.funcDecomp = !isNative(global.WinRTError) && reThis.test(function() { return this; });
+
+/**
+ * Detect if `Function#name` is supported (all but IE).
+ *
+ * @memberOf _.support
+ * @type boolean
+ */
+support.funcNames = typeof Function.name == 'string';
+
+module.exports = support;
+
+}).call(this,typeof global !== "undefined" ? global : typeof self !== "undefined" ? self : typeof window !== "undefined" ? window : {})
+},{"lodash._isnative":12}],33:[function(require,module,exports){
 /**
  * Lo-Dash 2.4.1 (Custom Build) <http://lodash.com/>
  * Build: `lodash modularize modern exports="npm" -o ./npm/`
@@ -1536,227 +1728,7 @@ function template(text, data, options) {
 
 module.exports = template;
 
-},{"lodash._escapestringchar":35,"lodash._reinterpolate":36,"lodash.defaults":37,"lodash.escape":39,"lodash.keys":44,"lodash.templatesettings":48,"lodash.values":49}],35:[function(require,module,exports){
-/**
- * Lo-Dash 2.4.1 (Custom Build) <http://lodash.com/>
- * Build: `lodash modularize modern exports="npm" -o ./npm/`
- * Copyright 2012-2013 The Dojo Foundation <http://dojofoundation.org/>
- * Based on Underscore.js 1.5.2 <http://underscorejs.org/LICENSE>
- * Copyright 2009-2013 Jeremy Ashkenas, DocumentCloud and Investigative Reporters & Editors
- * Available under MIT license <http://lodash.com/license>
- */
-
-/** Used to escape characters for inclusion in compiled string literals */
-var stringEscapes = {
-  '\\': '\\',
-  "'": "'",
-  '\n': 'n',
-  '\r': 'r',
-  '\t': 't',
-  '\u2028': 'u2028',
-  '\u2029': 'u2029'
-};
-
-/**
- * Used by `template` to escape characters for inclusion in compiled
- * string literals.
- *
- * @private
- * @param {string} match The matched character to escape.
- * @returns {string} Returns the escaped character.
- */
-function escapeStringChar(match) {
-  return '\\' + stringEscapes[match];
-}
-
-module.exports = escapeStringChar;
-
-},{}],36:[function(require,module,exports){
-/**
- * Lo-Dash 2.4.1 (Custom Build) <http://lodash.com/>
- * Build: `lodash modularize modern exports="npm" -o ./npm/`
- * Copyright 2012-2013 The Dojo Foundation <http://dojofoundation.org/>
- * Based on Underscore.js 1.5.2 <http://underscorejs.org/LICENSE>
- * Copyright 2009-2013 Jeremy Ashkenas, DocumentCloud and Investigative Reporters & Editors
- * Available under MIT license <http://lodash.com/license>
- */
-
-/** Used to match "interpolate" template delimiters */
-var reInterpolate = /<%=([\s\S]+?)%>/g;
-
-module.exports = reInterpolate;
-
-},{}],37:[function(require,module,exports){
-/**
- * Lo-Dash 2.4.1 (Custom Build) <http://lodash.com/>
- * Build: `lodash modularize modern exports="npm" -o ./npm/`
- * Copyright 2012-2013 The Dojo Foundation <http://dojofoundation.org/>
- * Based on Underscore.js 1.5.2 <http://underscorejs.org/LICENSE>
- * Copyright 2009-2013 Jeremy Ashkenas, DocumentCloud and Investigative Reporters & Editors
- * Available under MIT license <http://lodash.com/license>
- */
-var keys = require('lodash.keys'),
-    objectTypes = require('lodash._objecttypes');
-
-/**
- * Assigns own enumerable properties of source object(s) to the destination
- * object for all destination properties that resolve to `undefined`. Once a
- * property is set, additional defaults of the same property will be ignored.
- *
- * @static
- * @memberOf _
- * @type Function
- * @category Objects
- * @param {Object} object The destination object.
- * @param {...Object} [source] The source objects.
- * @param- {Object} [guard] Allows working with `_.reduce` without using its
- *  `key` and `object` arguments as sources.
- * @returns {Object} Returns the destination object.
- * @example
- *
- * var object = { 'name': 'barney' };
- * _.defaults(object, { 'name': 'fred', 'employer': 'slate' });
- * // => { 'name': 'barney', 'employer': 'slate' }
- */
-var defaults = function(object, source, guard) {
-  var index, iterable = object, result = iterable;
-  if (!iterable) return result;
-  var args = arguments,
-      argsIndex = 0,
-      argsLength = typeof guard == 'number' ? 2 : args.length;
-  while (++argsIndex < argsLength) {
-    iterable = args[argsIndex];
-    if (iterable && objectTypes[typeof iterable]) {
-    var ownIndex = -1,
-        ownProps = objectTypes[typeof iterable] && keys(iterable),
-        length = ownProps ? ownProps.length : 0;
-
-    while (++ownIndex < length) {
-      index = ownProps[ownIndex];
-      if (typeof result[index] == 'undefined') result[index] = iterable[index];
-    }
-    }
-  }
-  return result
-};
-
-module.exports = defaults;
-
-},{"lodash._objecttypes":38,"lodash.keys":44}],38:[function(require,module,exports){
-module.exports=require(24)
-},{"/Users/andrewwalker/sites/sir-trevor-js/node_modules/lodash.isempty/node_modules/lodash.forown/node_modules/lodash._objecttypes/index.js":24}],39:[function(require,module,exports){
-/**
- * Lo-Dash 2.4.1 (Custom Build) <http://lodash.com/>
- * Build: `lodash modularize modern exports="npm" -o ./npm/`
- * Copyright 2012-2013 The Dojo Foundation <http://dojofoundation.org/>
- * Based on Underscore.js 1.5.2 <http://underscorejs.org/LICENSE>
- * Copyright 2009-2013 Jeremy Ashkenas, DocumentCloud and Investigative Reporters & Editors
- * Available under MIT license <http://lodash.com/license>
- */
-var escapeHtmlChar = require('lodash._escapehtmlchar'),
-    keys = require('lodash.keys'),
-    reUnescapedHtml = require('lodash._reunescapedhtml');
-
-/**
- * Converts the characters `&`, `<`, `>`, `"`, and `'` in `string` to their
- * corresponding HTML entities.
- *
- * @static
- * @memberOf _
- * @category Utilities
- * @param {string} string The string to escape.
- * @returns {string} Returns the escaped string.
- * @example
- *
- * _.escape('Fred, Wilma, & Pebbles');
- * // => 'Fred, Wilma, &amp; Pebbles'
- */
-function escape(string) {
-  return string == null ? '' : String(string).replace(reUnescapedHtml, escapeHtmlChar);
-}
-
-module.exports = escape;
-
-},{"lodash._escapehtmlchar":40,"lodash._reunescapedhtml":42,"lodash.keys":44}],40:[function(require,module,exports){
-/**
- * Lo-Dash 2.4.1 (Custom Build) <http://lodash.com/>
- * Build: `lodash modularize modern exports="npm" -o ./npm/`
- * Copyright 2012-2013 The Dojo Foundation <http://dojofoundation.org/>
- * Based on Underscore.js 1.5.2 <http://underscorejs.org/LICENSE>
- * Copyright 2009-2013 Jeremy Ashkenas, DocumentCloud and Investigative Reporters & Editors
- * Available under MIT license <http://lodash.com/license>
- */
-var htmlEscapes = require('lodash._htmlescapes');
-
-/**
- * Used by `escape` to convert characters to HTML entities.
- *
- * @private
- * @param {string} match The matched character to escape.
- * @returns {string} Returns the escaped character.
- */
-function escapeHtmlChar(match) {
-  return htmlEscapes[match];
-}
-
-module.exports = escapeHtmlChar;
-
-},{"lodash._htmlescapes":41}],41:[function(require,module,exports){
-/**
- * Lo-Dash 2.4.1 (Custom Build) <http://lodash.com/>
- * Build: `lodash modularize modern exports="npm" -o ./npm/`
- * Copyright 2012-2013 The Dojo Foundation <http://dojofoundation.org/>
- * Based on Underscore.js 1.5.2 <http://underscorejs.org/LICENSE>
- * Copyright 2009-2013 Jeremy Ashkenas, DocumentCloud and Investigative Reporters & Editors
- * Available under MIT license <http://lodash.com/license>
- */
-
-/**
- * Used to convert characters to HTML entities:
- *
- * Though the `>` character is escaped for symmetry, characters like `>` and `/`
- * don't require escaping in HTML and have no special meaning unless they're part
- * of a tag or an unquoted attribute value.
- * http://mathiasbynens.be/notes/ambiguous-ampersands (under "semi-related fun fact")
- */
-var htmlEscapes = {
-  '&': '&amp;',
-  '<': '&lt;',
-  '>': '&gt;',
-  '"': '&quot;',
-  "'": '&#39;'
-};
-
-module.exports = htmlEscapes;
-
-},{}],42:[function(require,module,exports){
-/**
- * Lo-Dash 2.4.1 (Custom Build) <http://lodash.com/>
- * Build: `lodash modularize modern exports="npm" -o ./npm/`
- * Copyright 2012-2013 The Dojo Foundation <http://dojofoundation.org/>
- * Based on Underscore.js 1.5.2 <http://underscorejs.org/LICENSE>
- * Copyright 2009-2013 Jeremy Ashkenas, DocumentCloud and Investigative Reporters & Editors
- * Available under MIT license <http://lodash.com/license>
- */
-var htmlEscapes = require('lodash._htmlescapes'),
-    keys = require('lodash.keys');
-
-/** Used to match HTML entities and HTML characters */
-var reUnescapedHtml = RegExp('[' + keys(htmlEscapes).join('') + ']', 'g');
-
-module.exports = reUnescapedHtml;
-
-},{"lodash._htmlescapes":43,"lodash.keys":44}],43:[function(require,module,exports){
-module.exports=require(41)
-},{"/Users/andrewwalker/sites/sir-trevor-js/node_modules/lodash.template/node_modules/lodash.escape/node_modules/lodash._escapehtmlchar/node_modules/lodash._htmlescapes/index.js":41}],44:[function(require,module,exports){
-module.exports=require(25)
-},{"/Users/andrewwalker/sites/sir-trevor-js/node_modules/lodash.isempty/node_modules/lodash.forown/node_modules/lodash.keys/index.js":25,"lodash._isnative":45,"lodash._shimkeys":46,"lodash.isobject":29}],45:[function(require,module,exports){
-module.exports=require(8)
-},{"/Users/andrewwalker/sites/sir-trevor-js/node_modules/lodash.isempty/node_modules/lodash.forown/node_modules/lodash._basecreatecallback/node_modules/lodash._setbinddata/node_modules/lodash._isnative/index.js":8}],46:[function(require,module,exports){
-module.exports=require(27)
-},{"/Users/andrewwalker/sites/sir-trevor-js/node_modules/lodash.isempty/node_modules/lodash.forown/node_modules/lodash.keys/node_modules/lodash._shimkeys/index.js":27,"lodash._objecttypes":47}],47:[function(require,module,exports){
-module.exports=require(24)
-},{"/Users/andrewwalker/sites/sir-trevor-js/node_modules/lodash.isempty/node_modules/lodash.forown/node_modules/lodash._objecttypes/index.js":24}],48:[function(require,module,exports){
+},{"lodash._escapestringchar":10,"lodash._reinterpolate":14,"lodash.defaults":20,"lodash.escape":21,"lodash.keys":29,"lodash.templatesettings":34,"lodash.values":36}],34:[function(require,module,exports){
 /**
  * Lo-Dash 2.4.1 (Custom Build) <http://lodash.com/>
  * Build: `lodash modularize modern exports="npm" -o ./npm/`
@@ -1831,7 +1803,43 @@ var templateSettings = {
 
 module.exports = templateSettings;
 
-},{"lodash._reinterpolate":36,"lodash.escape":39}],49:[function(require,module,exports){
+},{"lodash._reinterpolate":14,"lodash.escape":21}],35:[function(require,module,exports){
+/**
+ * Lo-Dash 2.4.1 (Custom Build) <http://lodash.com/>
+ * Build: `lodash modularize modern exports="npm" -o ./npm/`
+ * Copyright 2012-2013 The Dojo Foundation <http://dojofoundation.org/>
+ * Based on Underscore.js 1.5.2 <http://underscorejs.org/LICENSE>
+ * Copyright 2009-2013 Jeremy Ashkenas, DocumentCloud and Investigative Reporters & Editors
+ * Available under MIT license <http://lodash.com/license>
+ */
+
+/** Used to generate unique IDs */
+var idCounter = 0;
+
+/**
+ * Generates a unique ID. If `prefix` is provided the ID will be appended to it.
+ *
+ * @static
+ * @memberOf _
+ * @category Utilities
+ * @param {string} [prefix] The value to prefix the ID with.
+ * @returns {string} Returns the unique ID.
+ * @example
+ *
+ * _.uniqueId('contact_');
+ * // => 'contact_104'
+ *
+ * _.uniqueId();
+ * // => '105'
+ */
+function uniqueId(prefix) {
+  var id = ++idCounter;
+  return String(prefix == null ? '' : prefix) + id;
+}
+
+module.exports = uniqueId;
+
+},{}],36:[function(require,module,exports){
 /**
  * Lo-Dash 2.4.1 (Custom Build) <http://lodash.com/>
  * Build: `lodash modularize modern exports="npm" -o ./npm/`
@@ -1869,43 +1877,156 @@ function values(object) {
 
 module.exports = values;
 
-},{"lodash.keys":44}],50:[function(require,module,exports){
-/**
- * Lo-Dash 2.4.1 (Custom Build) <http://lodash.com/>
- * Build: `lodash modularize modern exports="npm" -o ./npm/`
- * Copyright 2012-2013 The Dojo Foundation <http://dojofoundation.org/>
- * Based on Underscore.js 1.5.2 <http://underscorejs.org/LICENSE>
- * Copyright 2009-2013 Jeremy Ashkenas, DocumentCloud and Investigative Reporters & Editors
- * Available under MIT license <http://lodash.com/license>
- */
+},{"lodash.keys":29}],37:[function(require,module,exports){
+'use strict';
 
-/** Used to generate unique IDs */
-var idCounter = 0;
+// modified from https://github.com/es-shims/es5-shim
+var has = Object.prototype.hasOwnProperty;
+var toStr = Object.prototype.toString;
+var slice = Array.prototype.slice;
+var isArgs = require('./isArguments');
+var hasDontEnumBug = !({ toString: null }).propertyIsEnumerable('toString');
+var hasProtoEnumBug = function () {}.propertyIsEnumerable('prototype');
+var dontEnums = [
+	'toString',
+	'toLocaleString',
+	'valueOf',
+	'hasOwnProperty',
+	'isPrototypeOf',
+	'propertyIsEnumerable',
+	'constructor'
+];
+var equalsConstructorPrototype = function (o) {
+	var ctor = o.constructor;
+	return ctor && ctor.prototype === o;
+};
+var blacklistedKeys = {
+	$console: true,
+	$frame: true,
+	$frameElement: true,
+	$frames: true,
+	$parent: true,
+	$self: true,
+	$webkitIndexedDB: true,
+	$webkitStorageInfo: true,
+	$window: true
+};
+var hasAutomationEqualityBug = (function () {
+	/* global window */
+	if (typeof window === 'undefined') { return false; }
+	for (var k in window) {
+		try {
+			if (!blacklistedKeys['$' + k] && has.call(window, k) && window[k] !== null && typeof window[k] === 'object') {
+				try {
+					equalsConstructorPrototype(window[k]);
+				} catch (e) {
+					return true;
+				}
+			}
+		} catch (e) {
+			return true;
+		}
+	}
+	return false;
+}());
+var equalsConstructorPrototypeIfNotBuggy = function (o) {
+	/* global window */
+	if (typeof window === 'undefined' || !hasAutomationEqualityBug) {
+		return equalsConstructorPrototype(o);
+	}
+	try {
+		return equalsConstructorPrototype(o);
+	} catch (e) {
+		return false;
+	}
+};
 
-/**
- * Generates a unique ID. If `prefix` is provided the ID will be appended to it.
- *
- * @static
- * @memberOf _
- * @category Utilities
- * @param {string} [prefix] The value to prefix the ID with.
- * @returns {string} Returns the unique ID.
- * @example
- *
- * _.uniqueId('contact_');
- * // => 'contact_104'
- *
- * _.uniqueId();
- * // => '105'
- */
-function uniqueId(prefix) {
-  var id = ++idCounter;
-  return String(prefix == null ? '' : prefix) + id;
-}
+var keysShim = function keys(object) {
+	var isObject = object !== null && typeof object === 'object';
+	var isFunction = toStr.call(object) === '[object Function]';
+	var isArguments = isArgs(object);
+	var isString = isObject && toStr.call(object) === '[object String]';
+	var theKeys = [];
 
-module.exports = uniqueId;
+	if (!isObject && !isFunction && !isArguments) {
+		throw new TypeError('Object.keys called on a non-object');
+	}
 
-},{}],51:[function(require,module,exports){
+	var skipProto = hasProtoEnumBug && isFunction;
+	if (isString && object.length > 0 && !has.call(object, 0)) {
+		for (var i = 0; i < object.length; ++i) {
+			theKeys.push(String(i));
+		}
+	}
+
+	if (isArguments && object.length > 0) {
+		for (var j = 0; j < object.length; ++j) {
+			theKeys.push(String(j));
+		}
+	} else {
+		for (var name in object) {
+			if (!(skipProto && name === 'prototype') && has.call(object, name)) {
+				theKeys.push(String(name));
+			}
+		}
+	}
+
+	if (hasDontEnumBug) {
+		var skipConstructor = equalsConstructorPrototypeIfNotBuggy(object);
+
+		for (var k = 0; k < dontEnums.length; ++k) {
+			if (!(skipConstructor && dontEnums[k] === 'constructor') && has.call(object, dontEnums[k])) {
+				theKeys.push(dontEnums[k]);
+			}
+		}
+	}
+	return theKeys;
+};
+
+keysShim.shim = function shimObjectKeys() {
+	if (Object.keys) {
+		var keysWorksWithArguments = (function () {
+			// Safari 5.0 bug
+			return (Object.keys(arguments) || '').length === 2;
+		}(1, 2));
+		if (!keysWorksWithArguments) {
+			var originalKeys = Object.keys;
+			Object.keys = function keys(object) {
+				if (isArgs(object)) {
+					return originalKeys(slice.call(object));
+				} else {
+					return originalKeys(object);
+				}
+			};
+		}
+	} else {
+		Object.keys = keysShim;
+	}
+	return Object.keys || keysShim;
+};
+
+module.exports = keysShim;
+
+},{"./isArguments":38}],38:[function(require,module,exports){
+'use strict';
+
+var toStr = Object.prototype.toString;
+
+module.exports = function isArguments(value) {
+	var str = toStr.call(value);
+	var isArgs = str === '[object Arguments]';
+	if (!isArgs) {
+		isArgs = str !== '[object Array]' &&
+			value !== null &&
+			typeof value === 'object' &&
+			typeof value.length === 'number' &&
+			value.length >= 0 &&
+			toStr.call(value.callee) === '[object Function]';
+	}
+	return isArgs;
+};
+
+},{}],39:[function(require,module,exports){
 'use strict';
 
 // modified from https://github.com/es-shims/es6-shim
@@ -1938,159 +2059,86 @@ assignShim.shim = function shimObjectAssign() {
 module.exports = assignShim;
 
 
-},{"object-keys":52}],52:[function(require,module,exports){
-"use strict";
-
-// modified from https://github.com/es-shims/es5-shim
-var has = Object.prototype.hasOwnProperty;
-var toString = Object.prototype.toString;
-var isArgs = require('./isArguments');
-var hasDontEnumBug = !({'toString': null}).propertyIsEnumerable('toString');
-var hasProtoEnumBug = (function () {}).propertyIsEnumerable('prototype');
-var dontEnums = [
-	"toString",
-	"toLocaleString",
-	"valueOf",
-	"hasOwnProperty",
-	"isPrototypeOf",
-	"propertyIsEnumerable",
-	"constructor"
-];
-
-var keysShim = function keys(object) {
-	var isObject = object !== null && typeof object === 'object';
-	var isFunction = toString.call(object) === '[object Function]';
-	var isArguments = isArgs(object);
-	var isString = isObject && toString.call(object) === '[object String]';
-	var theKeys = [];
-
-	if (!isObject && !isFunction && !isArguments) {
-		throw new TypeError("Object.keys called on a non-object");
-	}
-
-	var skipProto = hasProtoEnumBug && isFunction;
-	if (isString && object.length > 0 && !has.call(object, 0)) {
-		for (var i = 0; i < object.length; ++i) {
-			theKeys.push(String(i));
-		}
-	}
-
-	if (isArguments && object.length > 0) {
-		for (var j = 0; j < object.length; ++j) {
-			theKeys.push(String(j));
-		}
-	} else {
-		for (var name in object) {
-			if (!(skipProto && name === 'prototype') && has.call(object, name)) {
-				theKeys.push(String(name));
-			}
-		}
-	}
-
-	if (hasDontEnumBug) {
-		var ctor = object.constructor;
-		var skipConstructor = ctor && ctor.prototype === object;
-
-		for (var j = 0; j < dontEnums.length; ++j) {
-			if (!(skipConstructor && dontEnums[j] === 'constructor') && has.call(object, dontEnums[j])) {
-				theKeys.push(dontEnums[j]);
-			}
-		}
-	}
-	return theKeys;
-};
-
-keysShim.shim = function shimObjectKeys() {
-	if (!Object.keys) {
-		Object.keys = keysShim;
-	}
-	return Object.keys || keysShim;
-};
-
-module.exports = keysShim;
-
-
-},{"./isArguments":53}],53:[function(require,module,exports){
-"use strict";
-
-var toString = Object.prototype.toString;
-
-module.exports = function isArguments(value) {
-	var str = toString.call(value);
-	var isArguments = str === '[object Arguments]';
-	if (!isArguments) {
-		isArguments = str !== '[object Array]'
-			&& value !== null
-			&& typeof value === 'object'
-			&& typeof value.length === 'number'
-			&& value.length >= 0
-			&& toString.call(value.callee) === '[object Function]';
-	}
-	return isArguments;
-};
-
-
-},{}],54:[function(require,module,exports){
+},{"object-keys":37}],40:[function(require,module,exports){
 /**
  * Copyright (c) 2011-2014 Felix Gnass
  * Licensed under the MIT license
+ * http://spin.js.org/
+ *
+ * Example:
+    var opts = {
+      lines: 12             // The number of lines to draw
+    , length: 7             // The length of each line
+    , width: 5              // The line thickness
+    , radius: 10            // The radius of the inner circle
+    , scale: 1.0            // Scales overall size of the spinner
+    , corners: 1            // Roundness (0..1)
+    , color: '#000'         // #rgb or #rrggbb
+    , opacity: 1/4          // Opacity of the lines
+    , rotate: 0             // Rotation offset
+    , direction: 1          // 1: clockwise, -1: counterclockwise
+    , speed: 1              // Rounds per second
+    , trail: 100            // Afterglow percentage
+    , fps: 20               // Frames per second when using setTimeout()
+    , zIndex: 2e9           // Use a high z-index by default
+    , className: 'spinner'  // CSS class to assign to the element
+    , top: '50%'            // center vertically
+    , left: '50%'           // center horizontally
+    , shadow: false         // Whether to render a shadow
+    , hwaccel: false        // Whether to use hardware acceleration (might be buggy)
+    , position: 'absolute'  // Element positioning
+    }
+    var target = document.getElementById('foo')
+    var spinner = new Spinner(opts).spin(target)
  */
-(function(root, factory) {
+;(function (root, factory) {
 
   /* CommonJS */
-  if (typeof exports == 'object')  module.exports = factory()
+  if (typeof module == 'object' && module.exports) module.exports = factory()
 
   /* AMD module */
   else if (typeof define == 'function' && define.amd) define(factory)
 
   /* Browser global */
   else root.Spinner = factory()
-}
-(this, function() {
-  "use strict";
+}(this, function () {
+  "use strict"
 
   var prefixes = ['webkit', 'Moz', 'ms', 'O'] /* Vendor prefixes */
     , animations = {} /* Animation rules keyed by their name */
     , useCssAnimations /* Whether to use CSS animations or setTimeout */
+    , sheet /* A stylesheet to hold the @keyframe or VML rules. */
 
   /**
    * Utility function to create elements. If no tag name is given,
    * a DIV is created. Optionally properties can be passed.
    */
-  function createEl(tag, prop) {
+  function createEl (tag, prop) {
     var el = document.createElement(tag || 'div')
       , n
 
-    for(n in prop) el[n] = prop[n]
+    for (n in prop) el[n] = prop[n]
     return el
   }
 
   /**
    * Appends children and returns the parent.
    */
-  function ins(parent /* child1, child2, ...*/) {
-    for (var i=1, n=arguments.length; i<n; i++)
+  function ins (parent /* child1, child2, ...*/) {
+    for (var i = 1, n = arguments.length; i < n; i++) {
       parent.appendChild(arguments[i])
+    }
 
     return parent
   }
-
-  /**
-   * Insert a new stylesheet to hold the @keyframe or VML rules.
-   */
-  var sheet = (function() {
-    var el = createEl('style', {type : 'text/css'})
-    ins(document.getElementsByTagName('head')[0], el)
-    return el.sheet || el.styleSheet
-  }())
 
   /**
    * Creates an opacity keyframe animation rule and returns its name.
    * Since most mobile Webkits have timing issues with animation-delay,
    * we create separate rules for each line/segment.
    */
-  function addAnimation(alpha, trail, i, lines) {
-    var name = ['opacity', trail, ~~(alpha*100), i, lines].join('-')
+  function addAnimation (alpha, trail, i, lines) {
+    var name = ['opacity', trail, ~~(alpha * 100), i, lines].join('-')
       , start = 0.01 + i/lines * 100
       , z = Math.max(1 - (1-alpha) / trail * (100-start), alpha)
       , prefix = useCssAnimations.substring(0, useCssAnimations.indexOf('Animation')).toLowerCase()
@@ -2115,25 +2163,26 @@ module.exports = function isArguments(value) {
   /**
    * Tries various vendor prefixes and returns the first supported property.
    */
-  function vendor(el, prop) {
+  function vendor (el, prop) {
     var s = el.style
       , pp
       , i
 
     prop = prop.charAt(0).toUpperCase() + prop.slice(1)
-    for(i=0; i<prefixes.length; i++) {
+    if (s[prop] !== undefined) return prop
+    for (i = 0; i < prefixes.length; i++) {
       pp = prefixes[i]+prop
-      if(s[pp] !== undefined) return pp
+      if (s[pp] !== undefined) return pp
     }
-    if(s[prop] !== undefined) return prop
   }
 
   /**
    * Sets multiple style properties at once.
    */
-  function css(el, prop) {
-    for (var n in prop)
-      el.style[vendor(el, n)||n] = prop[n]
+  function css (el, prop) {
+    for (var n in prop) {
+      el.style[vendor(el, n) || n] = prop[n]
+    }
 
     return el
   }
@@ -2141,57 +2190,50 @@ module.exports = function isArguments(value) {
   /**
    * Fills in default values.
    */
-  function merge(obj) {
-    for (var i=1; i < arguments.length; i++) {
+  function merge (obj) {
+    for (var i = 1; i < arguments.length; i++) {
       var def = arguments[i]
-      for (var n in def)
+      for (var n in def) {
         if (obj[n] === undefined) obj[n] = def[n]
+      }
     }
     return obj
   }
 
   /**
-   * Returns the absolute page-offset of the given element.
-   */
-  function pos(el) {
-    var o = { x:el.offsetLeft, y:el.offsetTop }
-    while((el = el.offsetParent))
-      o.x+=el.offsetLeft, o.y+=el.offsetTop
-
-    return o
-  }
-
-  /**
    * Returns the line color from the given string or array.
    */
-  function getColor(color, idx) {
+  function getColor (color, idx) {
     return typeof color == 'string' ? color : color[idx % color.length]
   }
 
   // Built-in defaults
 
   var defaults = {
-    lines: 12,            // The number of lines to draw
-    length: 7,            // The length of each line
-    width: 5,             // The line thickness
-    radius: 10,           // The radius of the inner circle
-    rotate: 0,            // Rotation offset
-    corners: 1,           // Roundness (0..1)
-    color: '#000',        // #rgb or #rrggbb
-    direction: 1,         // 1: clockwise, -1: counterclockwise
-    speed: 1,             // Rounds per second
-    trail: 100,           // Afterglow percentage
-    opacity: 1/4,         // Opacity of the lines
-    fps: 20,              // Frames per second when using setTimeout()
-    zIndex: 2e9,          // Use a high z-index by default
-    className: 'spinner', // CSS class to assign to the element
-    top: '50%',           // center vertically
-    left: '50%',          // center horizontally
-    position: 'absolute'  // element position
+    lines: 12             // The number of lines to draw
+  , length: 7             // The length of each line
+  , width: 5              // The line thickness
+  , radius: 10            // The radius of the inner circle
+  , scale: 1.0            // Scales overall size of the spinner
+  , corners: 1            // Roundness (0..1)
+  , color: '#000'         // #rgb or #rrggbb
+  , opacity: 1/4          // Opacity of the lines
+  , rotate: 0             // Rotation offset
+  , direction: 1          // 1: clockwise, -1: counterclockwise
+  , speed: 1              // Rounds per second
+  , trail: 100            // Afterglow percentage
+  , fps: 20               // Frames per second when using setTimeout()
+  , zIndex: 2e9           // Use a high z-index by default
+  , className: 'spinner'  // CSS class to assign to the element
+  , top: '50%'            // center vertically
+  , left: '50%'           // center horizontally
+  , shadow: false         // Whether to render a shadow
+  , hwaccel: false        // Whether to use hardware acceleration (might be buggy)
+  , position: 'absolute'  // Element positioning
   }
 
   /** The constructor */
-  function Spinner(o) {
+  function Spinner (o) {
     this.opts = merge(o || {}, Spinner.defaults, defaults)
   }
 
@@ -2199,27 +2241,28 @@ module.exports = function isArguments(value) {
   Spinner.defaults = {}
 
   merge(Spinner.prototype, {
-
     /**
      * Adds the spinner to the given target element. If this instance is already
      * spinning, it is automatically removed from its previous target b calling
      * stop() internally.
      */
-    spin: function(target) {
+    spin: function (target) {
       this.stop()
 
       var self = this
         , o = self.opts
-        , el = self.el = css(createEl(0, {className: o.className}), {position: o.position, width: 0, zIndex: o.zIndex})
-        , mid = o.radius+o.length+o.width
+        , el = self.el = createEl(null, {className: o.className})
 
       css(el, {
-        left: o.left,
-        top: o.top
+        position: o.position
+      , width: 0
+      , zIndex: o.zIndex
+      , left: o.left
+      , top: o.top
       })
-        
+
       if (target) {
-        target.insertBefore(el, target.firstChild||null)
+        target.insertBefore(el, target.firstChild || null)
       }
 
       el.setAttribute('role', 'progressbar')
@@ -2231,27 +2274,27 @@ module.exports = function isArguments(value) {
           , start = (o.lines - 1) * (1 - o.direction) / 2
           , alpha
           , fps = o.fps
-          , f = fps/o.speed
-          , ostep = (1-o.opacity) / (f*o.trail / 100)
-          , astep = f/o.lines
+          , f = fps / o.speed
+          , ostep = (1 - o.opacity) / (f * o.trail / 100)
+          , astep = f / o.lines
 
-        ;(function anim() {
-          i++;
+        ;(function anim () {
+          i++
           for (var j = 0; j < o.lines; j++) {
             alpha = Math.max(1 - (i + (o.lines - j) * astep) % f * ostep, o.opacity)
 
             self.opacity(el, j * o.direction + start, alpha, o)
           }
-          self.timeout = self.el && setTimeout(anim, ~~(1000/fps))
+          self.timeout = self.el && setTimeout(anim, ~~(1000 / fps))
         })()
       }
       return self
-    },
+    }
 
     /**
      * Stops and removes the Spinner.
      */
-    stop: function() {
+  , stop: function () {
       var el = this.el
       if (el) {
         clearTimeout(this.timeout)
@@ -2259,129 +2302,143 @@ module.exports = function isArguments(value) {
         this.el = undefined
       }
       return this
-    },
+    }
 
     /**
      * Internal method that draws the individual lines. Will be overwritten
      * in VML fallback mode below.
      */
-    lines: function(el, o) {
+  , lines: function (el, o) {
       var i = 0
         , start = (o.lines - 1) * (1 - o.direction) / 2
         , seg
 
-      function fill(color, shadow) {
+      function fill (color, shadow) {
         return css(createEl(), {
-          position: 'absolute',
-          width: (o.length+o.width) + 'px',
-          height: o.width + 'px',
-          background: color,
-          boxShadow: shadow,
-          transformOrigin: 'left',
-          transform: 'rotate(' + ~~(360/o.lines*i+o.rotate) + 'deg) translate(' + o.radius+'px' +',0)',
-          borderRadius: (o.corners * o.width>>1) + 'px'
+          position: 'absolute'
+        , width: o.scale * (o.length + o.width) + 'px'
+        , height: o.scale * o.width + 'px'
+        , background: color
+        , boxShadow: shadow
+        , transformOrigin: 'left'
+        , transform: 'rotate(' + ~~(360/o.lines*i + o.rotate) + 'deg) translate(' + o.scale*o.radius + 'px' + ',0)'
+        , borderRadius: (o.corners * o.scale * o.width >> 1) + 'px'
         })
       }
 
       for (; i < o.lines; i++) {
         seg = css(createEl(), {
-          position: 'absolute',
-          top: 1+~(o.width/2) + 'px',
-          transform: o.hwaccel ? 'translate3d(0,0,0)' : '',
-          opacity: o.opacity,
-          animation: useCssAnimations && addAnimation(o.opacity, o.trail, start + i * o.direction, o.lines) + ' ' + 1/o.speed + 's linear infinite'
+          position: 'absolute'
+        , top: 1 + ~(o.scale * o.width / 2) + 'px'
+        , transform: o.hwaccel ? 'translate3d(0,0,0)' : ''
+        , opacity: o.opacity
+        , animation: useCssAnimations && addAnimation(o.opacity, o.trail, start + i * o.direction, o.lines) + ' ' + 1 / o.speed + 's linear infinite'
         })
 
-        if (o.shadow) ins(seg, css(fill('#000', '0 0 4px ' + '#000'), {top: 2+'px'}))
+        if (o.shadow) ins(seg, css(fill('#000', '0 0 4px #000'), {top: '2px'}))
         ins(el, ins(seg, fill(getColor(o.color, i), '0 0 1px rgba(0,0,0,.1)')))
       }
       return el
-    },
+    }
 
     /**
      * Internal method that adjusts the opacity of a single line.
      * Will be overwritten in VML fallback mode below.
      */
-    opacity: function(el, i, val) {
+  , opacity: function (el, i, val) {
       if (i < el.childNodes.length) el.childNodes[i].style.opacity = val
     }
 
   })
 
 
-  function initVML() {
+  function initVML () {
 
     /* Utility function to create a VML tag */
-    function vml(tag, attr) {
+    function vml (tag, attr) {
       return createEl('<' + tag + ' xmlns="urn:schemas-microsoft.com:vml" class="spin-vml">', attr)
     }
 
     // No CSS transforms but VML support, add a CSS rule for VML elements:
     sheet.addRule('.spin-vml', 'behavior:url(#default#VML)')
 
-    Spinner.prototype.lines = function(el, o) {
-      var r = o.length+o.width
-        , s = 2*r
+    Spinner.prototype.lines = function (el, o) {
+      var r = o.scale * (o.length + o.width)
+        , s = o.scale * 2 * r
 
-      function grp() {
+      function grp () {
         return css(
           vml('group', {
-            coordsize: s + ' ' + s,
-            coordorigin: -r + ' ' + -r
-          }),
-          { width: s, height: s }
+            coordsize: s + ' ' + s
+          , coordorigin: -r + ' ' + -r
+          })
+        , { width: s, height: s }
         )
       }
 
-      var margin = -(o.width+o.length)*2 + 'px'
+      var margin = -(o.width + o.length) * o.scale * 2 + 'px'
         , g = css(grp(), {position: 'absolute', top: margin, left: margin})
         , i
 
-      function seg(i, dx, filter) {
-        ins(g,
-          ins(css(grp(), {rotation: 360 / o.lines * i + 'deg', left: ~~dx}),
-            ins(css(vml('roundrect', {arcsize: o.corners}), {
-                width: r,
-                height: o.width,
-                left: o.radius,
-                top: -o.width>>1,
-                filter: filter
-              }),
-              vml('fill', {color: getColor(o.color, i), opacity: o.opacity}),
-              vml('stroke', {opacity: 0}) // transparent stroke to fix color bleeding upon opacity change
+      function seg (i, dx, filter) {
+        ins(
+          g
+        , ins(
+            css(grp(), {rotation: 360 / o.lines * i + 'deg', left: ~~dx})
+          , ins(
+              css(
+                vml('roundrect', {arcsize: o.corners})
+              , { width: r
+                , height: o.scale * o.width
+                , left: o.scale * o.radius
+                , top: -o.scale * o.width >> 1
+                , filter: filter
+                }
+              )
+            , vml('fill', {color: getColor(o.color, i), opacity: o.opacity})
+            , vml('stroke', {opacity: 0}) // transparent stroke to fix color bleeding upon opacity change
             )
           )
         )
       }
 
       if (o.shadow)
-        for (i = 1; i <= o.lines; i++)
+        for (i = 1; i <= o.lines; i++) {
           seg(i, -2, 'progid:DXImageTransform.Microsoft.Blur(pixelradius=2,makeshadow=1,shadowopacity=.3)')
+        }
 
       for (i = 1; i <= o.lines; i++) seg(i)
       return ins(el, g)
     }
 
-    Spinner.prototype.opacity = function(el, i, val, o) {
+    Spinner.prototype.opacity = function (el, i, val, o) {
       var c = el.firstChild
       o = o.shadow && o.lines || 0
-      if (c && i+o < c.childNodes.length) {
-        c = c.childNodes[i+o]; c = c && c.firstChild; c = c && c.firstChild
+      if (c && i + o < c.childNodes.length) {
+        c = c.childNodes[i + o]; c = c && c.firstChild; c = c && c.firstChild
         if (c) c.opacity = val
       }
     }
   }
 
-  var probe = css(createEl('group'), {behavior: 'url(#default#VML)'})
+  if (typeof document !== 'undefined') {
+    sheet = (function () {
+      var el = createEl('style', {type : 'text/css'})
+      ins(document.getElementsByTagName('head')[0], el)
+      return el.sheet || el.styleSheet
+    }())
 
-  if (!vendor(probe, 'transform') && probe.adj) initVML()
-  else useCssAnimations = vendor(probe, 'animation')
+    var probe = css(createEl('group'), {behavior: 'url(#default#VML)'})
+
+    if (!vendor(probe, 'transform') && probe.adj) initVML()
+    else useCssAnimations = vendor(probe, 'animation')
+  }
 
   return Spinner
 
 }));
 
-},{}],55:[function(require,module,exports){
+},{}],41:[function(require,module,exports){
 "use strict";
 
 var _ = require('./lodash');
@@ -2414,7 +2471,7 @@ Object.assign(BlockControl.prototype, require('./function-bind'), require('./ren
 
 module.exports = BlockControl;
 
-},{"./blocks":73,"./events":83,"./function-bind":92,"./lodash":97,"./renderable":99}],56:[function(require,module,exports){
+},{"./blocks":59,"./events":69,"./function-bind":78,"./lodash":83,"./renderable":85}],42:[function(require,module,exports){
 (function (global){
 "use strict";
 
@@ -2425,7 +2482,7 @@ module.exports = BlockControl;
  */
 
 var _ = require('./lodash');
-var $ = (typeof window !== "undefined" ? window.$ : typeof global !== "undefined" ? global.$ : null);
+var $ = (typeof window !== "undefined" ? window['$'] : typeof global !== "undefined" ? global['$'] : null);
 
 var Blocks = require('./blocks');
 var BlockControl = require('./block-control');
@@ -2510,7 +2567,7 @@ Object.assign(BlockControls.prototype, require('./function-bind'), require('./me
 module.exports = BlockControls;
 
 }).call(this,typeof global !== "undefined" ? global : typeof self !== "undefined" ? self : typeof window !== "undefined" ? window : {})
-},{"./block-control":55,"./blocks":73,"./event-bus":82,"./events":83,"./function-bind":92,"./lodash":97,"./mediated-events":98,"./renderable":99}],57:[function(require,module,exports){
+},{"./block-control":41,"./blocks":59,"./event-bus":68,"./events":69,"./function-bind":78,"./lodash":83,"./mediated-events":84,"./renderable":85}],43:[function(require,module,exports){
 "use strict";
 
 var BlockDeletion = function() {
@@ -2532,7 +2589,7 @@ Object.assign(BlockDeletion.prototype, require('./function-bind'), require('./re
 
 module.exports = BlockDeletion;
 
-},{"./function-bind":92,"./renderable":99}],58:[function(require,module,exports){
+},{"./function-bind":78,"./renderable":85}],44:[function(require,module,exports){
 "use strict";
 
 var _ = require('./lodash');
@@ -2734,7 +2791,7 @@ Object.assign(BlockManager.prototype, require('./function-bind'), require('./med
 module.exports = BlockManager;
 
 
-},{"./blocks":73,"./config":79,"./event-bus":82,"./events":83,"./function-bind":92,"./lodash":97,"./mediated-events":98,"./utils":103}],59:[function(require,module,exports){
+},{"./blocks":59,"./config":65,"./event-bus":68,"./events":69,"./function-bind":78,"./lodash":83,"./mediated-events":84,"./utils":89}],45:[function(require,module,exports){
 "use strict";
 
 var template = [
@@ -2814,12 +2871,12 @@ Object.assign(BlockPositioner.prototype, require('./function-bind'), require('./
 
 module.exports = BlockPositioner;
 
-},{"./function-bind":92,"./renderable":99}],60:[function(require,module,exports){
+},{"./function-bind":78,"./renderable":85}],46:[function(require,module,exports){
 (function (global){
 "use strict";
 
 var _ = require('./lodash');
-var $ = (typeof window !== "undefined" ? window.$ : typeof global !== "undefined" ? global.$ : null);
+var $ = (typeof window !== "undefined" ? window['$'] : typeof global !== "undefined" ? global['$'] : null);
 
 var EventBus = require('./event-bus');
 
@@ -2908,7 +2965,7 @@ Object.assign(BlockReorder.prototype, require('./function-bind'), require('./ren
 module.exports = BlockReorder;
 
 }).call(this,typeof global !== "undefined" ? global : typeof self !== "undefined" ? self : typeof window !== "undefined" ? window : {})
-},{"./event-bus":82,"./function-bind":92,"./lodash":97,"./renderable":99}],61:[function(require,module,exports){
+},{"./event-bus":68,"./function-bind":78,"./lodash":83,"./renderable":85}],47:[function(require,module,exports){
 "use strict";
 
 var _ = require('./lodash');
@@ -2994,12 +3051,12 @@ module.exports = {
 
 };
 
-},{"./event-bus":82,"./lodash":97,"./utils":103}],62:[function(require,module,exports){
+},{"./event-bus":68,"./lodash":83,"./utils":89}],48:[function(require,module,exports){
 (function (global){
 "use strict";
 
 var _ = require('./lodash');
-var $ = (typeof window !== "undefined" ? window.$ : typeof global !== "undefined" ? global.$ : null);
+var $ = (typeof window !== "undefined" ? window['$'] : typeof global !== "undefined" ? global['$'] : null);
 var utils = require('./utils');
 
 var bestNameFromField = function(field) {
@@ -3075,12 +3132,12 @@ module.exports = {
 };
 
 }).call(this,typeof global !== "undefined" ? global : typeof self !== "undefined" ? self : typeof window !== "undefined" ? window : {})
-},{"./lodash":97,"./utils":103}],63:[function(require,module,exports){
+},{"./lodash":83,"./utils":89}],49:[function(require,module,exports){
 (function (global){
 "use strict";
 
 var _ = require('./lodash');
-var $ = (typeof window !== "undefined" ? window.$ : typeof global !== "undefined" ? global.$ : null);
+var $ = (typeof window !== "undefined" ? window['$'] : typeof global !== "undefined" ? global['$'] : null);
 
 var config = require('./config');
 var utils = require('./utils');
@@ -3456,7 +3513,7 @@ Block.extend = require('./helpers/extend'); // Allow our Block to be extended.
 module.exports = Block;
 
 }).call(this,typeof global !== "undefined" ? global : typeof self !== "undefined" ? self : typeof window !== "undefined" ? window : {})
-},{"./block-deletion":57,"./block-positioner":59,"./block-reorder":60,"./block-validations":62,"./block_mixins":68,"./config":79,"./event-bus":82,"./formatters":91,"./helpers/extend":94,"./lodash":97,"./simple-block":100,"./to-html":101,"./to-markdown":102,"./utils":103,"spin.js":54}],64:[function(require,module,exports){
+},{"./block-deletion":43,"./block-positioner":45,"./block-reorder":46,"./block-validations":48,"./block_mixins":54,"./config":65,"./event-bus":68,"./formatters":77,"./helpers/extend":80,"./lodash":83,"./simple-block":86,"./to-html":87,"./to-markdown":88,"./utils":89,"spin.js":40}],50:[function(require,module,exports){
 "use strict";
 
 var utils = require('../utils');
@@ -3498,11 +3555,11 @@ module.exports = {
 
 };
 
-},{"../utils":103}],65:[function(require,module,exports){
+},{"../utils":89}],51:[function(require,module,exports){
 (function (global){
 "use strict";
 
-var $ = (typeof window !== "undefined" ? window.$ : typeof global !== "undefined" ? global.$ : null);
+var $ = (typeof window !== "undefined" ? window['$'] : typeof global !== "undefined" ? global['$'] : null);
 
 var utils = require('../utils');
 
@@ -3537,14 +3594,14 @@ module.exports = {
 };
 
 }).call(this,typeof global !== "undefined" ? global : typeof self !== "undefined" ? self : typeof window !== "undefined" ? window : {})
-},{"../utils":103}],66:[function(require,module,exports){
+},{"../utils":89}],52:[function(require,module,exports){
 (function (global){
 "use strict";
 
 /* Adds drop functionaltiy to this block */
 
 var _ = require('../lodash');
-var $ = (typeof window !== "undefined" ? window.$ : typeof global !== "undefined" ? global.$ : null);
+var $ = (typeof window !== "undefined" ? window['$'] : typeof global !== "undefined" ? global['$'] : null);
 var config = require('../config');
 var utils = require('../utils');
 
@@ -3602,12 +3659,12 @@ module.exports = {
 };
 
 }).call(this,typeof global !== "undefined" ? global : typeof self !== "undefined" ? self : typeof window !== "undefined" ? window : {})
-},{"../config":79,"../event-bus":82,"../lodash":97,"../utils":103}],67:[function(require,module,exports){
+},{"../config":65,"../event-bus":68,"../lodash":83,"../utils":89}],53:[function(require,module,exports){
 (function (global){
 "use strict";
 
 var _ = require('../lodash');
-var $ = (typeof window !== "undefined" ? window.$ : typeof global !== "undefined" ? global.$ : null);
+var $ = (typeof window !== "undefined" ? window['$'] : typeof global !== "undefined" ? global['$'] : null);
 
 module.exports = {
 
@@ -3640,7 +3697,7 @@ module.exports = {
 };
 
 }).call(this,typeof global !== "undefined" ? global : typeof self !== "undefined" ? self : typeof window !== "undefined" ? window : {})
-},{"../lodash":97,"./ajaxable":64}],68:[function(require,module,exports){
+},{"../lodash":83,"./ajaxable":50}],54:[function(require,module,exports){
 "use strict";
 
 module.exports = {
@@ -3652,12 +3709,12 @@ module.exports = {
   Uploadable: require('./uploadable.js'),
 };
 
-},{"./ajaxable.js":64,"./controllable.js":65,"./droppable.js":66,"./fetchable.js":67,"./pastable.js":69,"./uploadable.js":70}],69:[function(require,module,exports){
+},{"./ajaxable.js":50,"./controllable.js":51,"./droppable.js":52,"./fetchable.js":53,"./pastable.js":55,"./uploadable.js":56}],55:[function(require,module,exports){
 (function (global){
 "use strict";
 
 var _ = require('../lodash');
-var $ = (typeof window !== "undefined" ? window.$ : typeof global !== "undefined" ? global.$ : null);
+var $ = (typeof window !== "undefined" ? window['$'] : typeof global !== "undefined" ? global['$'] : null);
 var config = require('../config');
 var utils = require('../utils');
 
@@ -3680,7 +3737,7 @@ module.exports = {
 };
 
 }).call(this,typeof global !== "undefined" ? global : typeof self !== "undefined" ? self : typeof window !== "undefined" ? window : {})
-},{"../config":79,"../lodash":97,"../utils":103}],70:[function(require,module,exports){
+},{"../config":65,"../lodash":83,"../utils":89}],56:[function(require,module,exports){
 "use strict";
 
 var _ = require('../lodash');
@@ -3709,7 +3766,7 @@ module.exports = {
 
 };
 
-},{"../config":79,"../extensions/file-uploader":85,"../lodash":97,"../utils":103,"./ajaxable":64}],71:[function(require,module,exports){
+},{"../config":65,"../extensions/file-uploader":71,"../lodash":83,"../utils":89,"./ajaxable":50}],57:[function(require,module,exports){
 "use strict";
 
 /*
@@ -3734,11 +3791,11 @@ module.exports = Block.extend({
   }
 });
 
-},{"../block":63,"../to-html":101}],72:[function(require,module,exports){
+},{"../block":49,"../to-html":87}],58:[function(require,module,exports){
 (function (global){
 "use strict";
 
-var $ = (typeof window !== "undefined" ? window.$ : typeof global !== "undefined" ? global.$ : null);
+var $ = (typeof window !== "undefined" ? window['$'] : typeof global !== "undefined" ? global['$'] : null);
 var Block = require('../block');
 
 module.exports = Block.extend({
@@ -3791,7 +3848,7 @@ module.exports = Block.extend({
 });
 
 }).call(this,typeof global !== "undefined" ? global : typeof self !== "undefined" ? self : typeof window !== "undefined" ? window : {})
-},{"../block":63}],73:[function(require,module,exports){
+},{"../block":49}],59:[function(require,module,exports){
 "use strict";
 
 module.exports = {
@@ -3804,7 +3861,7 @@ module.exports = {
   Video: require('./video'),
 };
 
-},{"./heading":71,"./image":72,"./list":74,"./quote":75,"./text":76,"./tweet":77,"./video":78}],74:[function(require,module,exports){
+},{"./heading":57,"./image":58,"./list":60,"./quote":61,"./text":62,"./tweet":63,"./video":64}],60:[function(require,module,exports){
 "use strict";
 
 var _ = require('../lodash');
@@ -3850,7 +3907,7 @@ module.exports = Block.extend({
 
   toHTML: function(html) {
     html = html.replace(/^ - (.+)$/mg,"<li>$1</li>")
-               .replace(/\n/mg, " ");
+               .replace(/\n/mg, "");
 
     return html;
   },
@@ -3867,7 +3924,7 @@ module.exports = Block.extend({
 
 });
 
-},{"../block":63,"../lodash":97,"../to-html":101}],75:[function(require,module,exports){
+},{"../block":49,"../lodash":83,"../to-html":87}],61:[function(require,module,exports){
 "use strict";
 
 /*
@@ -3909,7 +3966,7 @@ module.exports = Block.extend({
 
 });
 
-},{"../block":63,"../lodash":97,"../to-html":101}],76:[function(require,module,exports){
+},{"../block":49,"../lodash":83,"../to-html":87}],62:[function(require,module,exports){
 "use strict";
 
 /*
@@ -3934,12 +3991,12 @@ module.exports = Block.extend({
   }
 });
 
-},{"../block":63,"../to-html":101}],77:[function(require,module,exports){
+},{"../block":49,"../to-html":87}],63:[function(require,module,exports){
 (function (global){
 "use strict";
 
 var _ = require('../lodash');
-var $ = (typeof window !== "undefined" ? window.$ : typeof global !== "undefined" ? global.$ : null);
+var $ = (typeof window !== "undefined" ? window['$'] : typeof global !== "undefined" ? global['$'] : null);
 var utils = require('../utils');
 
 var Block = require('../block');
@@ -4046,7 +4103,7 @@ module.exports = Block.extend({
 });
 
 }).call(this,typeof global !== "undefined" ? global : typeof self !== "undefined" ? self : typeof window !== "undefined" ? window : {})
-},{"../block":63,"../lodash":97,"../utils":103}],78:[function(require,module,exports){
+},{"../block":49,"../lodash":83,"../utils":89}],64:[function(require,module,exports){
 "use strict";
 
 var _ = require('../lodash');
@@ -4127,7 +4184,7 @@ module.exports = Block.extend({
 });
 
 
-},{"../block":63,"../lodash":97,"../utils":103}],79:[function(require,module,exports){
+},{"../block":49,"../lodash":83,"../utils":89}],65:[function(require,module,exports){
 "use strict";
 
 module.exports = {
@@ -4162,7 +4219,7 @@ module.exports = {
   }
 };
 
-},{}],80:[function(require,module,exports){
+},{}],66:[function(require,module,exports){
 (function (global){
 "use strict";
 
@@ -4175,7 +4232,7 @@ module.exports = {
  */
 
 var _ = require('./lodash');
-var $ = (typeof window !== "undefined" ? window.$ : typeof global !== "undefined" ? global.$ : null);
+var $ = (typeof window !== "undefined" ? window['$'] : typeof global !== "undefined" ? global['$'] : null);
 var config = require('./config');
 var utils = require('./utils');
 
@@ -4464,12 +4521,12 @@ module.exports = Editor;
 
 
 }).call(this,typeof global !== "undefined" ? global : typeof self !== "undefined" ? self : typeof window !== "undefined" ? window : {})
-},{"./block-controls":56,"./block-manager":58,"./config":79,"./error-handler":81,"./event-bus":82,"./events":83,"./extensions/editor-store":84,"./floating-block-controls":87,"./form-events":88,"./format-bar":89,"./function-bind":92,"./lodash":97,"./utils":103}],81:[function(require,module,exports){
+},{"./block-controls":42,"./block-manager":44,"./config":65,"./error-handler":67,"./event-bus":68,"./events":69,"./extensions/editor-store":70,"./floating-block-controls":73,"./form-events":74,"./format-bar":75,"./function-bind":78,"./lodash":83,"./utils":89}],67:[function(require,module,exports){
 (function (global){
 "use strict";
 
 var _ = require('./lodash');
-var $ = (typeof window !== "undefined" ? window.$ : typeof global !== "undefined" ? global.$ : null);
+var $ = (typeof window !== "undefined" ? window['$'] : typeof global !== "undefined" ? global['$'] : null);
 
 var ErrorHandler = function($wrapper, mediator, container) {
   this.$wrapper = $wrapper;
@@ -4535,17 +4592,17 @@ module.exports = ErrorHandler;
 
 
 }).call(this,typeof global !== "undefined" ? global : typeof self !== "undefined" ? self : typeof window !== "undefined" ? window : {})
-},{"./function-bind":92,"./lodash":97,"./mediated-events":98,"./renderable":99}],82:[function(require,module,exports){
+},{"./function-bind":78,"./lodash":83,"./mediated-events":84,"./renderable":85}],68:[function(require,module,exports){
 "use strict";
 
 module.exports = Object.assign({}, require('./events'));
 
-},{"./events":83}],83:[function(require,module,exports){
+},{"./events":69}],69:[function(require,module,exports){
 "use strict";
 
 module.exports = require('eventablejs');
 
-},{"eventablejs":3}],84:[function(require,module,exports){
+},{"eventablejs":3}],70:[function(require,module,exports){
 "use strict";
 
 /*
@@ -4616,7 +4673,7 @@ Object.assign(EditorStore.prototype, {
 
 module.exports = EditorStore;
 
-},{"../lodash":97,"../utils":103}],85:[function(require,module,exports){
+},{"../lodash":83,"../utils":89}],71:[function(require,module,exports){
 (function (global){
 "use strict";
 
@@ -4626,7 +4683,7 @@ module.exports = EditorStore;
 */
 
 var _ = require('../lodash');
-var $ = (typeof window !== "undefined" ? window.$ : typeof global !== "undefined" ? global.$ : null);
+var $ = (typeof window !== "undefined" ? window['$'] : typeof global !== "undefined" ? global['$'] : null);
 var config = require('../config');
 var utils = require('../utils');
 
@@ -4683,7 +4740,7 @@ module.exports = function(block, file, success, error) {
 };
 
 }).call(this,typeof global !== "undefined" ? global : typeof self !== "undefined" ? self : typeof window !== "undefined" ? window : {})
-},{"../config":79,"../event-bus":82,"../lodash":97,"../utils":103}],86:[function(require,module,exports){
+},{"../config":65,"../event-bus":68,"../lodash":83,"../utils":89}],72:[function(require,module,exports){
 (function (global){
 "use strict";
 
@@ -4696,7 +4753,7 @@ module.exports = function(block, file, success, error) {
  * This will be triggered *by anything* so it needs to subscribe to events.
  */
 
-var $ = (typeof window !== "undefined" ? window.$ : typeof global !== "undefined" ? global.$ : null);
+var $ = (typeof window !== "undefined" ? window['$'] : typeof global !== "undefined" ? global['$'] : null);
 var utils = require('../utils');
 
 var EventBus = require('../event-bus');
@@ -4794,7 +4851,7 @@ module.exports = Submittable;
 
 
 }).call(this,typeof global !== "undefined" ? global : typeof self !== "undefined" ? self : typeof window !== "undefined" ? window : {})
-},{"../event-bus":82,"../utils":103}],87:[function(require,module,exports){
+},{"../event-bus":68,"../utils":89}],73:[function(require,module,exports){
 (function (global){
 "use strict";
 
@@ -4805,7 +4862,7 @@ module.exports = Submittable;
    */
 
 var _ = require('./lodash');
-var $ = (typeof window !== "undefined" ? window.$ : typeof global !== "undefined" ? global.$ : null);
+var $ = (typeof window !== "undefined" ? window['$'] : typeof global !== "undefined" ? global['$'] : null);
 
 var EventBus = require('./event-bus');
 
@@ -4886,7 +4943,7 @@ Object.assign(FloatingBlockControls.prototype, require('./function-bind'), requi
 module.exports = FloatingBlockControls;
 
 }).call(this,typeof global !== "undefined" ? global : typeof self !== "undefined" ? self : typeof window !== "undefined" ? window : {})
-},{"./event-bus":82,"./events":83,"./function-bind":92,"./lodash":97,"./renderable":99}],88:[function(require,module,exports){
+},{"./event-bus":68,"./events":69,"./function-bind":78,"./lodash":83,"./renderable":85}],74:[function(require,module,exports){
 "use strict";
 
 var config = require('./config');
@@ -4933,7 +4990,7 @@ var FormEvents = {
 
 module.exports = FormEvents;
 
-},{"./config":79,"./event-bus":82,"./extensions/submittable":86,"./utils":103}],89:[function(require,module,exports){
+},{"./config":65,"./event-bus":68,"./extensions/submittable":72,"./utils":89}],75:[function(require,module,exports){
 (function (global){
 "use strict";
 
@@ -4945,7 +5002,7 @@ module.exports = FormEvents;
    */
 
 var _ = require('./lodash');
-var $ = (typeof window !== "undefined" ? window.$ : typeof global !== "undefined" ? global.$ : null);
+var $ = (typeof window !== "undefined" ? window['$'] : typeof global !== "undefined" ? global['$'] : null);
 
 var config = require('./config');
 var Formatters = require('./formatters');
@@ -5060,7 +5117,7 @@ Object.assign(FormatBar.prototype, require('./function-bind'), require('./mediat
 module.exports = FormatBar;
 
 }).call(this,typeof global !== "undefined" ? global : typeof self !== "undefined" ? self : typeof window !== "undefined" ? window : {})
-},{"./config":79,"./events":83,"./formatters":91,"./function-bind":92,"./lodash":97,"./mediated-events":98,"./renderable":99}],90:[function(require,module,exports){
+},{"./config":65,"./events":69,"./formatters":77,"./function-bind":78,"./lodash":83,"./mediated-events":84,"./renderable":85}],76:[function(require,module,exports){
 "use strict";
 
 var _ = require('./lodash');
@@ -5132,7 +5189,7 @@ Formatter.extend = require('./helpers/extend');
 
 module.exports = Formatter;
 
-},{"./helpers/extend":94,"./lodash":97}],91:[function(require,module,exports){
+},{"./helpers/extend":80,"./lodash":83}],77:[function(require,module,exports){
 "use strict";
 
 /* Our base formatters */
@@ -5202,7 +5259,7 @@ exports.Italic = new Italic();
 exports.Link = new Link();
 exports.Unlink = new UnLink();
 
-},{"./formatter":90}],92:[function(require,module,exports){
+},{"./formatter":76}],78:[function(require,module,exports){
 "use strict";
 
 /* Generic function binding utility, used by lots of our classes */
@@ -5217,7 +5274,7 @@ module.exports = {
 };
 
 
-},{}],93:[function(require,module,exports){
+},{}],79:[function(require,module,exports){
 (function (global){
 "use strict";
 
@@ -5228,7 +5285,7 @@ module.exports = {
  * Tweaked so we use the parent class of dropzone
  */
 
-var $ = (typeof window !== "undefined" ? window.$ : typeof global !== "undefined" ? global.$ : null);
+var $ = (typeof window !== "undefined" ? window['$'] : typeof global !== "undefined" ? global['$'] : null);
 
 function dragEnter(e) {
   e.preventDefault();
@@ -5275,7 +5332,7 @@ $.fn.caretToEnd = function(){
 
 
 }).call(this,typeof global !== "undefined" ? global : typeof self !== "undefined" ? self : typeof window !== "undefined" ? window : {})
-},{}],94:[function(require,module,exports){
+},{}],80:[function(require,module,exports){
 "use strict";
 
 /*
@@ -5321,7 +5378,7 @@ module.exports = function(protoProps, staticProps) {
   return child;
 };
 
-},{}],95:[function(require,module,exports){
+},{}],81:[function(require,module,exports){
 "use strict";
 
 var _ = require('./lodash');
@@ -5418,7 +5475,7 @@ Object.assign(SirTrevor, require('./form-events'));
 
 module.exports = SirTrevor;
 
-},{"./block":63,"./block-control":55,"./block-controls":56,"./block-deletion":57,"./block-manager":58,"./block-positioner":59,"./block-reorder":60,"./block-store":61,"./block-validations":62,"./block_mixins":68,"./blocks":73,"./config":79,"./editor":80,"./event-bus":82,"./events":83,"./extensions/editor-store":84,"./extensions/file-uploader":85,"./extensions/submittable":86,"./floating-block-controls":87,"./form-events":88,"./format-bar":89,"./formatter":90,"./formatters":91,"./helpers/event":93,"./locales":96,"./lodash":97,"./simple-block":100,"./to-html":101,"./to-markdown":102,"./utils":103,"./vendor/array-includes":104,"array.prototype.find":2,"object.assign":51}],96:[function(require,module,exports){
+},{"./block":49,"./block-control":41,"./block-controls":42,"./block-deletion":43,"./block-manager":44,"./block-positioner":45,"./block-reorder":46,"./block-store":47,"./block-validations":48,"./block_mixins":54,"./blocks":59,"./config":65,"./editor":66,"./event-bus":68,"./events":69,"./extensions/editor-store":70,"./extensions/file-uploader":71,"./extensions/submittable":72,"./floating-block-controls":73,"./form-events":74,"./format-bar":75,"./formatter":76,"./formatters":77,"./helpers/event":79,"./locales":82,"./lodash":83,"./simple-block":86,"./to-html":87,"./to-markdown":88,"./utils":89,"./vendor/array-includes":90,"array.prototype.find":2,"object.assign":39}],82:[function(require,module,exports){
 "use strict";
 
 var _ = require('./lodash');
@@ -5520,7 +5577,7 @@ if (window.i18n === undefined) {
 
 module.exports = Locales;
 
-},{"./config":79,"./lodash":97,"./utils":103}],97:[function(require,module,exports){
+},{"./config":65,"./lodash":83,"./utils":89}],83:[function(require,module,exports){
 "use strict";
 
 exports.isEmpty = require('lodash.isempty');
@@ -5532,7 +5589,7 @@ exports.result = require('lodash.result');
 exports.template = require('lodash.template');
 exports.uniqueId = require('lodash.uniqueid');
 
-},{"lodash.isempty":4,"lodash.isfunction":28,"lodash.isobject":29,"lodash.isstring":31,"lodash.isundefined":32,"lodash.result":33,"lodash.template":34,"lodash.uniqueid":50}],98:[function(require,module,exports){
+},{"lodash.isempty":24,"lodash.isfunction":25,"lodash.isobject":26,"lodash.isstring":27,"lodash.isundefined":28,"lodash.result":31,"lodash.template":33,"lodash.uniqueid":35}],84:[function(require,module,exports){
 "use strict";
 
 module.exports = {
@@ -5549,12 +5606,12 @@ module.exports = {
   }
 };
 
-},{}],99:[function(require,module,exports){
+},{}],85:[function(require,module,exports){
 (function (global){
 "use strict";
 
 var _ = require('./lodash');
-var $ = (typeof window !== "undefined" ? window.$ : typeof global !== "undefined" ? global.$ : null);
+var $ = (typeof window !== "undefined" ? window['$'] : typeof global !== "undefined" ? global['$'] : null);
 
 module.exports = {
   tagName: 'div',
@@ -5602,13 +5659,13 @@ module.exports = {
 
 
 }).call(this,typeof global !== "undefined" ? global : typeof self !== "undefined" ? self : typeof window !== "undefined" ? window : {})
-},{"./lodash":97}],100:[function(require,module,exports){
+},{"./lodash":83}],86:[function(require,module,exports){
 (function (global){
 "use strict";
 
 var _ = require('./lodash');
 var utils = require('./utils');
-var $ = (typeof window !== "undefined" ? window.$ : typeof global !== "undefined" ? global.$ : null);
+var $ = (typeof window !== "undefined" ? window['$'] : typeof global !== "undefined" ? global['$'] : null);
 
 var BlockReorder = require('./block-reorder');
 
@@ -5743,7 +5800,7 @@ SimpleBlock.extend = require('./helpers/extend');
 module.exports = SimpleBlock;
 
 }).call(this,typeof global !== "undefined" ? global : typeof self !== "undefined" ? self : typeof window !== "undefined" ? window : {})
-},{"./block-reorder":60,"./block-store":61,"./events":83,"./function-bind":92,"./helpers/extend":94,"./lodash":97,"./renderable":99,"./utils":103}],101:[function(require,module,exports){
+},{"./block-reorder":46,"./block-store":47,"./events":69,"./function-bind":78,"./helpers/extend":80,"./lodash":83,"./renderable":85,"./utils":89}],87:[function(require,module,exports){
 "use strict";
 
 var _ = require('./lodash');
@@ -5836,7 +5893,7 @@ module.exports = function(markdown, type) {
   return html;
 };
 
-},{"./blocks":73,"./formatters":91,"./lodash":97,"./utils":103}],102:[function(require,module,exports){
+},{"./blocks":59,"./formatters":77,"./lodash":83,"./utils":89}],88:[function(require,module,exports){
 "use strict";
 
 var _ = require('./lodash');
@@ -5858,7 +5915,7 @@ module.exports = function(content, type) {
 
   // First of all, strip any additional formatting
   // MSWord, I'm looking at you, punk.
-  markdown = markdown.replace(/( class=(")?Msoo[a-zA-Z]+(")?)/g, '')
+  markdown = markdown.replace(/( class=(")?Mso[a-zA-Z]+(")?)/g, '')
                      .replace(/<!--(.*?)-->/g, '')
                      .replace(/\/\*(.*?)\*\//g, '')
                      .replace(/<(\/)*(meta|link|span|\\?xml:|st1:|o:|font)(.*?)>/gi, '');
@@ -5946,7 +6003,7 @@ module.exports = function(content, type) {
   return markdown;
 };
 
-},{"./blocks":73,"./formatters":91,"./lodash":97,"./utils":103}],103:[function(require,module,exports){
+},{"./blocks":59,"./formatters":77,"./lodash":83,"./utils":89}],89:[function(require,module,exports){
 "use strict";
 
 var _ = require('./lodash');
@@ -6009,7 +6066,7 @@ var utils = {
 
 module.exports = utils;
 
-},{"./config":79,"./lodash":97}],104:[function(require,module,exports){
+},{"./config":65,"./lodash":83}],90:[function(require,module,exports){
 "use strict";
 
 // jshint freeze: false
